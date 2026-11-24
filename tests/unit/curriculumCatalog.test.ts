@@ -22,6 +22,8 @@ describe('Curriculum Catalog & Reference Banks (Zod Validation)', () => {
       expect(ordered.length).toBe(10);
       expect(ordered[0].code).toBe('STARTER');
       expect(ordered[ordered.length - 1].title).toContain('SUMMER');
+      const totalCourseExercises = ordered.reduce((sum, u) => sum + u.exercises.length, 0);
+      expect(totalCourseExercises).toBeGreaterThanOrEqual(85);
     }
   });
 
