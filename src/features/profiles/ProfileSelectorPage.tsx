@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CloudOff, Lock, RefreshCw, Shield, Sparkles } from 'lucide-react';
 import { getAvatar } from '../../components/ui/Avatars';
@@ -5,8 +6,13 @@ import { useApp } from '../../context/AppContext';
 import { getCourse } from '../../data/curriculum';
 
 export function ProfileSelectorPage() {
-  const { students, selectStudent, localMode, isOnline, pendingSyncCount } = useApp();
+  const { students, selectStudent, lockParent, localMode, isOnline, pendingSyncCount } = useApp();
   const navigate = useNavigate();
+
+  // Always lock Parent Zone automatically upon returning to Profile Selector
+  useEffect(() => {
+    lockParent();
+  }, [lockParent]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-sky-100 via-emerald-50/40 to-amber-50/40 p-4 sm:p-8">

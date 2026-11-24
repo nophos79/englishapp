@@ -23,7 +23,7 @@ import { familyRepository } from '../../services/familyRepository';
 type ParentTab = 'students' | 'units' | 'exams' | 'history';
 
 export function ParentDashboardPage() {
-  const { students, lockParent, refreshAll, signOutFamily, localMode } = useApp();
+  const { students, refreshAll, signOutFamily, localMode } = useApp();
   const navigate = useNavigate();
 
   const [tab, setTab] = useState<ParentTab>('units');
@@ -234,8 +234,7 @@ export function ParentDashboardPage() {
             <button
               type="button"
               onClick={() => {
-                lockParent();
-                navigate('/');
+                navigate('/', { replace: true });
               }}
               className="touch-target rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
             >

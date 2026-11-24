@@ -124,6 +124,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setActiveStudent(null);
   };
 
+  const selectStudent = useCallback((student: StudentProfile | null) => {
+    setActiveStudent(student);
+    setParentUnlocked(false);
+  }, []);
+
+  const unlockParent = useCallback(() => setParentUnlocked(true), []);
+  const lockParent = useCallback(() => setParentUnlocked(false), []);
+
   return (
     <AppContext.Provider
       value={{
@@ -137,12 +145,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         isOnline,
         pendingSyncCount,
         activeExamId,
-        selectStudent: (student) => {
-          setActiveStudent(student);
-          setParentUnlocked(false);
-        },
-        unlockParent: () => setParentUnlocked(true),
-        lockParent: () => setParentUnlocked(false),
+        selectStudent,
+        unlockParent,
+        lockParent,
         refreshAll,
         signOutFamily,
         setActiveExamId,
