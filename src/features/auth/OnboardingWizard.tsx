@@ -7,8 +7,8 @@ import type { CourseId } from '../../domain/types';
 import { familyRepository } from '../../services/familyRepository';
 
 export function OnboardingWizard() {
-  const { refreshAll } = useApp();
-  const [step, setStep] = useState<'pin' | 'student'>('pin');
+  const { hasPin, refreshAll } = useApp();
+  const [step, setStep] = useState<'pin' | 'student'>(hasPin ? 'student' : 'pin');
   const [nickname, setNickname] = useState('');
   const [avatarId, setAvatarId] = useState<string>(AVATARS[0].id);
   const [courseId, setCourseId] = useState<CourseId>('5p');

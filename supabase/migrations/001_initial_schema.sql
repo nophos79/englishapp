@@ -279,3 +279,17 @@ begin
   where id = p_student_id and family_id = auth.uid();
 end;
 $$;
+
+-- Explicit SQL privileges for Supabase authenticated role
+grant usage on schema public to authenticated;
+grant select, insert, update on public.student_profiles to authenticated;
+grant select, insert, update on public.student_unit_access to authenticated;
+grant select, insert, update on public.custom_exams to authenticated;
+grant select, insert on public.attempt_records to authenticated;
+grant select, insert, update on public.student_mistakes to authenticated;
+
+grant execute on function public.has_parent_pin() to authenticated;
+grant execute on function public.set_parent_pin(text) to authenticated;
+grant execute on function public.verify_parent_pin(text) to authenticated;
+grant execute on function public.parent_reset_student_progress(uuid, text) to authenticated;
+grant execute on function public.parent_delete_student(uuid, text) to authenticated;
