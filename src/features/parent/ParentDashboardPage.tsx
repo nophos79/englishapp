@@ -381,31 +381,31 @@ export function ParentDashboardPage() {
                         return (
                           <div
                             key={unit.id}
-                            className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3.5"
+                            className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3.5 sm:flex-row sm:items-center sm:justify-between"
                           >
-                            <div>
-                              <div className="flex items-center gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
                                 <span className="rounded-lg bg-white px-2 py-0.5 text-xs font-bold text-slate-700 shadow-xs">
                                   #{unit.schoolOrder} · {unit.code}
                                 </span>
                                 <span className="font-bold text-slate-900">{unit.title}</span>
                               </div>
-                              <p className="mt-1 text-xs text-slate-600">
+                              <p className="mt-1 text-xs leading-relaxed text-slate-600">
                                 {unit.grammarSummary.join(' · ')}
                               </p>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex shrink-0 items-center gap-2">
                               <button
                                 type="button"
                                 onClick={() => handleEnableUpTo(unit.schoolOrder)}
-                                className="touch-target rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                                className="touch-target whitespace-nowrap rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
                               >
                                 Activar hasta aquí
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleToggleUnit(unit.id)}
-                                className={`touch-target rounded-xl px-4 py-1.5 text-xs font-bold transition ${
+                                className={`touch-target w-24 whitespace-nowrap rounded-xl px-3 py-1.5 text-center text-xs font-bold transition ${
                                   enabled
                                     ? 'bg-emerald-600 text-white hover:bg-emerald-700'
                                     : 'bg-slate-300 text-slate-800 hover:bg-slate-400'
