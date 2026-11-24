@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Delete, Lock } from 'lucide-react';
 
 interface PinKeypadProps {
@@ -36,21 +36,22 @@ export function PinKeypad({
     return () => window.clearInterval(timer);
   }, [cooldownSeconds]);
 
-  const appendDigit = (digit: string) => {
-    if (cooldownSeconds > 0 || submitting) return;
-    if (pin.length < maxLength) {
-      setPin((prev) => prev + digit);
+  const appendDigit = useCallback(
+    (digit: string) => {
+      if (cooldownSeconds > 0 || submitting) return;
+      setPin((prev) => (prev.length < maxLength ? prev + digit : prev));
       setError(null);
-    }
-  };
+    },
+    [cooldownSeconds, submitting, maxLength],
+  );
 
-  const removeDigit = () => {
+  const removeDigit = useCallback(() => {
     if (submitting) return;
     setPin((prev) => prev.slice(0, -1));
     setError(null);
-  };
+  }, [submitting]);
 
-  const handleConfirm = async () => {
+  const handleConfirm = useCallback(async () => {
     if (cooldownSeconds > 0 || pin.length < minLength || submitting) return;
     setSubmitting(true);
     setError(null);
@@ -73,7 +74,38 @@ export function PinKeypad({
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [cooldownSeconds, pin, minLength, submitting, onSubmit, failedAttempts, enableCooldown]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+        return;
+      }
+      if (/^[0-9]$/.test(e.key)) {
+        e.preventDefault();
+        appendDigit(e.key);
+      } else if (e.key === 'Backspace') {
+        e.preventDefault();
+        removeDigit();
+      } else if (e.key === 'Delete') {
+        e.preventDefault();
+        if (!submitting) {
+          setPin('');
+          setError(null);
+        }
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        void handleConfirm();
+      } else if (e.key === 'Escape' && onCancel) {
+        e.preventDefault();
+        onCancel();
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [appendDigit, removeDigit, handleConfirm, onCancel, submitting]);
 
   const digits = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
