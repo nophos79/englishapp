@@ -56,4 +56,40 @@ describe('AnswerEvaluator', () => {
     expect(calculateStars(5, 10)).toBe(1);
     expect(calculateStars(4, 10)).toBe(0);
   });
+
+  it('evaluates sentence_order, word_builder, odd_one_out, and true_false', () => {
+    const orderItem: ExerciseItem = {
+      id: 'ex-ord',
+      courseId: '5p',
+      unitId: '5p-sa6-adventures',
+      skill: 'grammar',
+      type: 'sentence_order',
+      promptEs: 'Ordena:',
+      tokens: ['We', 'are', 'going', 'to', 'climb.'],
+      acceptedAnswers: ['We are going to climb.'],
+      explanationEs: 'Orden correcto.',
+      allowAudioInExam: false,
+    };
+    expect(evaluateAnswer(orderItem, 'We are going to climb.').isCorrect).toBe(true);
+    expect(evaluateAnswer(orderItem, 'We going are to climb.').isCorrect).toBe(false);
+
+    const builderItem: ExerciseItem = {
+      id: 'ex-wb',
+      courseId: '3p',
+      unitId: '3p-sa2-bedroom',
+      skill: 'vocabulary',
+      type: 'word_builder',
+      promptEs: 'Forma compuestas:',
+      pairs: [
+        { left: 'bed', right: 'room' },
+        { left: 'book', right: 'case' },
+        { left: 'arm', right: 'chair' },
+      ],
+      acceptedAnswers: ['bedroom | bookcase | armchair'],
+      explanationEs: 'Palabras compuestas.',
+      allowAudioInExam: false,
+    };
+    expect(evaluateAnswer(builderItem, { bed: 'room', book: 'case', arm: 'chair' }).isCorrect).toBe(true);
+    expect(evaluateAnswer(builderItem, { bed: 'case', book: 'room', arm: 'chair' }).isCorrect).toBe(false);
+  });
 });

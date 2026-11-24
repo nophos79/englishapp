@@ -27,11 +27,21 @@ describe('Curriculum Catalog & Reference Banks (Zod Validation)', () => {
     }
   });
 
-  it('has globally unique exercise IDs across all courses', () => {
-    const ids = COURSES.flatMap((c) =>
-      c.terms.flatMap((t) => t.units.flatMap((u) => u.exercises.map((e) => e.id))),
+  it('has globally unique exercise IDs and includes all 7 interactive exercise types', () => {
+    const all = COURSES.flatMap((c) =>
+      c.terms.flatMap((t) => t.units.flatMap((u) => u.exercises)),
     );
+    const ids = all.map((e) => e.id);
     expect(new Set(ids).size).toBe(ids.length);
+
+    const typesPresent = new Set(all.map((e) => e.type));
+    expect(typesPresent).toContain('multiple_choice');
+    expect(typesPresent).toContain('fill_blank');
+    expect(typesPresent).toContain('matching');
+    expect(typesPresent).toContain('sentence_order');
+    expect(typesPresent).toContain('word_builder');
+    expect(typesPresent).toContain('odd_one_out');
+    expect(typesPresent).toContain('true_false');
   });
 
   it('validates irregular verbs, expressions, and wordlist banks', () => {

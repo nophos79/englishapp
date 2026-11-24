@@ -5,14 +5,33 @@ import { course3p } from './course-3p';
 import { course4p } from './course-4p';
 import { course5p } from './course-5p';
 import { course6p } from './course-6p';
+import { VARIED_EXERCISES } from './variedExercises';
 
-export const COURSES: Course[] = [course3p, course4p, course5p, course6p];
+function withVariedExercises(course: Course): Course {
+  return {
+    ...course,
+    terms: course.terms.map((term) => ({
+      ...term,
+      units: term.units.map((unit) => {
+        const extras = VARIED_EXERCISES.filter((e) => e.unitId === unit.id);
+        return extras.length > 0 ? { ...unit, exercises: [...unit.exercises, ...extras] } : unit;
+      }),
+    })),
+  };
+}
+
+const enriched3p = withVariedExercises(course3p);
+const enriched4p = withVariedExercises(course4p);
+const enriched5p = withVariedExercises(course5p);
+const enriched6p = withVariedExercises(course6p);
+
+export const COURSES: Course[] = [enriched3p, enriched4p, enriched5p, enriched6p];
 
 export const COURSE_MAP: Record<CourseId, Course> = {
-  '3p': course3p,
-  '4p': course4p,
-  '5p': course5p,
-  '6p': course6p,
+  '3p': enriched3p,
+  '4p': enriched4p,
+  '5p': enriched5p,
+  '6p': enriched6p,
 };
 
 export function getCourse(courseId: CourseId): Course {

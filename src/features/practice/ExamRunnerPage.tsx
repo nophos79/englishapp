@@ -80,8 +80,9 @@ export function ExamRunnerPage() {
         const optionOrderByExercise: Record<string, string[]> = {};
         for (const id of target.exerciseIds) {
           const ex = getExerciseById(id);
-          if (ex?.options) optionOrderByExercise[id] = shuffleArray(ex.options);
+          if (ex?.options && ex.type !== 'true_false') optionOrderByExercise[id] = shuffleArray(ex.options);
           if (ex?.pairs) optionOrderByExercise[id] = shuffleArray(ex.pairs.map((p) => p.right));
+          if (ex?.tokens) optionOrderByExercise[id] = shuffleArray(ex.tokens);
         }
         activeSess = {
           examId: target.id,
@@ -347,12 +348,17 @@ export function ExamRunnerPage() {
           <ExerciseRenderer
             exercise={currentExercise}
             shuffledOptions={
-              currentExercise.type === 'multiple_choice'
+              currentExercise.type === 'multiple_choice' || currentExercise.type === 'odd_one_out'
                 ? session.optionOrderByExercise[currentExercise.id]
                 : undefined
             }
             shuffledRightPairs={
-              currentExercise.type === 'matching'
+              currentExercise.type === 'matching' || currentExercise.type === 'word_builder'
+                ? session.optionOrderByExercise[currentExercise.id]
+                : undefined
+            }
+            shuffledTokens={
+              currentExercise.type === 'sentence_order'
                 ? session.optionOrderByExercise[currentExercise.id]
                 : undefined
             }

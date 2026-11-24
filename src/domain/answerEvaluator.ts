@@ -19,7 +19,7 @@ export function evaluateAnswer(
   item: ExerciseItem,
   submitted: string | Record<string, string>,
 ): EvaluationResult {
-  if (item.type === 'matching') {
+  if (item.type === 'matching' || item.type === 'word_builder') {
     const pairs = item.pairs ?? [];
     const submittedMap = typeof submitted === 'object' && submitted !== null ? submitted : {};
     const allMatch =
@@ -29,10 +29,13 @@ export function evaluateAnswer(
         return normalizeText(chosen) === normalizeText(pair.right);
       });
 
+    const sep = item.type === 'word_builder' ? ' + ' : ' → ';
     const formattedSubmitted = pairs
-      .map((p) => `${p.left} → ${submittedMap[p.left] ?? '—'}`)
+      .map((p) => `${p.left}${sep}${submittedMap[p.left] ?? '—'}`)
       .join(' | ');
-    const formattedExpected = pairs.map((p) => `${p.left} → ${p.right}`).join(' | ');
+    const formattedExpected = pairs
+      .map((p) => (item.type === 'word_builder' ? `${p.left}${p.right}` : `${p.left} → ${p.right}`))
+      .join(' | ');
 
     return {
       isCorrect: allMatch,

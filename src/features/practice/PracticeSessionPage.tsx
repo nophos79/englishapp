@@ -88,7 +88,10 @@ export function PracticeSessionPage() {
 
   const hasValidInput = useMemo(() => {
     if (!currentQuestion) return false;
-    if (currentQuestion.exercise.type === 'matching') {
+    if (
+      currentQuestion.exercise.type === 'matching' ||
+      currentQuestion.exercise.type === 'word_builder'
+    ) {
       const pairs = currentQuestion.exercise.pairs ?? [];
       const map = typeof currentInput === 'object' && currentInput !== null ? currentInput : {};
       return pairs.every((p) => Boolean(map[p.left]));
@@ -265,6 +268,7 @@ export function PracticeSessionPage() {
               exercise={currentQuestion.exercise}
               shuffledOptions={currentQuestion.shuffledOptions}
               shuffledRightPairs={currentQuestion.shuffledRightPairs}
+              shuffledTokens={currentQuestion.shuffledTokens}
               value={currentInput}
               onChange={setCurrentInput}
               disabled={currentQuestion.submitted}

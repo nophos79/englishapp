@@ -4,7 +4,15 @@ export const courseIdSchema = z.enum(['3p', '4p', '5p', '6p']);
 export const cycleSchema = z.union([z.literal(2), z.literal(3)]);
 export const termNumberSchema = z.union([z.literal(1), z.literal(2), z.literal(3)]);
 export const skillAreaSchema = z.enum(['vocabulary', 'grammar', 'expressions', 'irregular_verbs']);
-export const exerciseTypeSchema = z.enum(['multiple_choice', 'fill_blank', 'matching']);
+export const exerciseTypeSchema = z.enum([
+  'multiple_choice',
+  'fill_blank',
+  'matching',
+  'sentence_order',
+  'word_builder',
+  'odd_one_out',
+  'true_false',
+]);
 
 export const matchingPairSchema = z.object({
   left: z.string().min(1),
@@ -20,18 +28,19 @@ export const exerciseItemSchema = z
     type: exerciseTypeSchema,
     promptEs: z.string().min(3),
     promptEn: z.string().min(1).optional(),
-    options: z.array(z.string().min(1)).min(3).optional(),
+    options: z.array(z.string().min(1)).min(2).optional(),
     pairs: z.array(matchingPairSchema).min(3).max(5).optional(),
+    tokens: z.array(z.string().min(1)).min(3).optional(),
     acceptedAnswers: z.array(z.string().min(1)).min(1),
     explanationEs: z.string().min(5),
     allowAudioInExam: z.boolean(),
   })
   .superRefine((item, ctx) => {
-    if (item.type === 'multiple_choice') {
+    if (item.type === 'multiple_choice' || item.type === 'odd_one_out') {
       if (!item.options || item.options.length < 3) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: 'multiple_choice requires at least 3 options',
+          message: `${item.type} requires at least 3 options`,
           path: ['options'],
         });
       } else if (!item.acceptedAnswers.some((ans) => item.options?.includes(ans))) {
@@ -42,11 +51,27 @@ export const exerciseItemSchema = z
         });
       }
     }
-    if (item.type === 'matching' && (!item.pairs || item.pairs.length < 3)) {
+    if (item.type === 'true_false') {
+      if (!item.options || item.options.length !== 2) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'true_false requires exactly 2 options',
+          path: ['options'],
+        });
+      }
+    }
+    if ((item.type === 'matching' || item.type === 'word_builder') && (!item.pairs || item.pairs.length < 3)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'matching requires at least 3 pairs',
+        message: `${item.type} requires at least 3 pairs`,
         path: ['pairs'],
+      });
+    }
+    if (item.type === 'sentence_order' && (!item.tokens || item.tokens.length < 3)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'sentence_order requires at least 3 tokens',
+        path: ['tokens'],
       });
     }
   });

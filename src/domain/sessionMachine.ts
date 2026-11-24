@@ -6,6 +6,7 @@ export interface PracticeQuestionState {
   exercise: ExerciseItem;
   shuffledOptions?: string[];
   shuffledRightPairs?: string[];
+  shuffledTokens?: string[];
   submitted: boolean;
   evaluation?: EvaluationResult;
 }
@@ -27,13 +28,17 @@ export function createPracticeSession(
   const ordered = shuffleArray(exercises, rng);
   const questions: PracticeQuestionState[] = ordered.map((exercise) => ({
     exercise,
-    shuffledOptions: exercise.options ? shuffleArray(exercise.options, rng) : undefined,
+    shuffledOptions:
+      exercise.options && exercise.type !== 'true_false'
+        ? shuffleArray(exercise.options, rng)
+        : exercise.options,
     shuffledRightPairs: exercise.pairs
       ? shuffleArray(
           exercise.pairs.map((p) => p.right),
           rng,
         )
       : undefined,
+    shuffledTokens: exercise.tokens ? shuffleArray(exercise.tokens, rng) : undefined,
     submitted: false,
   }));
 

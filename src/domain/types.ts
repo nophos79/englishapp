@@ -3,7 +3,14 @@ export type CycleNumber = 2 | 3;
 export type TermNumber = 1 | 2 | 3;
 
 export type SkillArea = 'vocabulary' | 'grammar' | 'expressions' | 'irregular_verbs';
-export type ExerciseType = 'multiple_choice' | 'fill_blank' | 'matching';
+export type ExerciseType =
+  | 'multiple_choice'
+  | 'fill_blank'
+  | 'matching'
+  | 'sentence_order'
+  | 'word_builder'
+  | 'odd_one_out'
+  | 'true_false';
 export type SkillFocus = 'vocabulary' | 'grammar' | 'mixed';
 
 export type ExamStatus = 'pending' | 'in_progress' | 'completed' | 'abandoned';
@@ -25,6 +32,7 @@ export interface ExerciseItem {
   promptEn?: string;
   options?: string[];
   pairs?: MatchingPair[];
+  tokens?: string[];
   acceptedAnswers: string[];
   explanationEs: string;
   allowAudioInExam: boolean;
