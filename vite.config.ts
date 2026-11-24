@@ -15,8 +15,8 @@ export default defineConfig({
         name: 'EnglishApp Primaria',
         short_name: 'EnglishApp',
         description: 'Práctica y evaluación de inglés para 3º a 6º de Primaria con perfil Padre y Alumno',
-        theme_color: '#1d4ed8',
-        background_color: '#f8fafc',
+        theme_color: '#16a34a',
+        background_color: '#f0f9ff',
         display: 'standalone',
         lang: 'es',
         icons: [

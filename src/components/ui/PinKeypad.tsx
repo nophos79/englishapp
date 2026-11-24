@@ -84,48 +84,54 @@ export function PinKeypad({
       }
       if (/^[0-9]$/.test(e.key)) {
         e.preventDefault();
+        e.stopPropagation();
         appendDigit(e.key);
       } else if (e.key === 'Backspace') {
         e.preventDefault();
+        e.stopPropagation();
         removeDigit();
       } else if (e.key === 'Delete') {
         e.preventDefault();
+        e.stopPropagation();
         if (!submitting) {
           setPin('');
           setError(null);
         }
-      } else if (e.key === 'Enter') {
+      } else if (e.key === 'Enter' || e.key === 'NumpadEnter') {
         e.preventDefault();
+        e.stopPropagation();
         void handleConfirm();
       } else if (e.key === 'Escape' && onCancel) {
         e.preventDefault();
+        e.stopPropagation();
         onCancel();
       }
     };
 
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    // Capture phase guarantees Enter submits the PIN even if a keypad button holds focus
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => window.removeEventListener('keydown', onKeyDown, true);
   }, [appendDigit, removeDigit, handleConfirm, onCancel, submitting]);
 
   const digits = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
   return (
-    <div className="mx-auto w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-6 shadow-lg">
+    <div className="mx-auto w-full max-w-sm rounded-3xl border-2 border-sky-200 bg-white p-6 shadow-xl">
       <div className="mb-4 flex flex-col items-center text-center">
-        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-blue-700">
-          <Lock className="h-6 w-6" />
+        <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 to-emerald-500 text-white shadow-md">
+          <Lock className="h-7 w-7" />
         </div>
-        <h2 className="text-xl font-bold text-slate-900">{title}</h2>
-        {subtitle && <p className="mt-1 text-sm text-slate-600">{subtitle}</p>}
+        <h2 className="text-xl font-black text-slate-900">{title}</h2>
+        {subtitle && <p className="mt-1 text-sm font-semibold text-slate-600">{subtitle}</p>}
       </div>
 
       <div className="mb-4 flex justify-center gap-2.5" aria-label="PIN introducido">
         {Array.from({ length: maxLength }).map((_, idx) => (
           <div
             key={idx}
-            className={`flex h-11 w-10 items-center justify-center rounded-xl border-2 text-lg font-bold ${
+            className={`flex h-12 w-10 items-center justify-center rounded-2xl border-2 text-lg font-black transition ${
               idx < pin.length
-                ? 'border-blue-600 bg-blue-50 text-blue-900'
+                ? 'scale-105 border-emerald-500 bg-emerald-50 text-emerald-700 shadow-xs'
                 : 'border-slate-200 bg-slate-50 text-slate-300'
             }`}
           >
@@ -135,13 +141,13 @@ export function PinKeypad({
       </div>
 
       {error && (
-        <p role="alert" className="mb-3 rounded-xl bg-rose-50 px-3 py-2 text-center text-sm font-medium text-rose-700">
+        <p role="alert" className="mb-3 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-center text-sm font-bold text-rose-700">
           {error}
         </p>
       )}
 
       {cooldownSeconds > 0 && (
-        <p className="mb-3 text-center text-sm font-semibold text-amber-700">
+        <p className="mb-3 text-center text-sm font-bold text-amber-700">
           Bloqueado temporalmente: {cooldownSeconds}s
         </p>
       )}
@@ -152,45 +158,57 @@ export function PinKeypad({
             key={d}
             type="button"
             disabled={cooldownSeconds > 0 || submitting}
-            onClick={() => appendDigit(d)}
-            className="touch-target rounded-2xl border border-slate-200 bg-slate-50 py-3 text-xl font-bold text-slate-900 transition hover:bg-slate-100 active:scale-95 disabled:opacity-40"
+            onClick={(e) => {
+              e.currentTarget.blur();
+              appendDigit(d);
+            }}
+            className="btn-duo btn-duo-white py-2.5 text-xl font-black text-slate-800 disabled:opacity-40"
           >
             {d}
           </button>
         ))}
         <button
           type="button"
-          onClick={() => setPin('')}
+          onClick={(e) => {
+            e.currentTarget.blur();
+            setPin('');
+          }}
           disabled={submitting}
-          className="touch-target rounded-2xl border border-slate-200 bg-slate-50 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-100"
+          className="btn-duo btn-duo-white py-2.5 text-sm font-extrabold text-slate-600"
         >
           Borrar
         </button>
         <button
           type="button"
           disabled={cooldownSeconds > 0 || submitting}
-          onClick={() => appendDigit('0')}
-          className="touch-target rounded-2xl border border-slate-200 bg-slate-50 py-3 text-xl font-bold text-slate-900 transition hover:bg-slate-100 active:scale-95 disabled:opacity-40"
+          onClick={(e) => {
+            e.currentTarget.blur();
+            appendDigit('0');
+          }}
+          className="btn-duo btn-duo-white py-2.5 text-xl font-black text-slate-800 disabled:opacity-40"
         >
           0
         </button>
         <button
           type="button"
-          onClick={removeDigit}
+          onClick={(e) => {
+            e.currentTarget.blur();
+            removeDigit();
+          }}
           disabled={submitting}
           aria-label="Eliminar último dígito"
-          className="touch-target flex items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 py-3 text-slate-700 hover:bg-slate-100"
+          className="btn-duo btn-duo-white flex items-center justify-center py-2.5 text-slate-700"
         >
           <Delete className="h-5 w-5" />
         </button>
       </div>
 
-      <div className="mt-5 flex flex-col gap-2">
+      <div className="mt-5 flex flex-col gap-2.5">
         <button
           type="button"
-          onClick={handleConfirm}
+          onClick={() => void handleConfirm()}
           disabled={pin.length < minLength || cooldownSeconds > 0 || submitting}
-          className="touch-target w-full rounded-2xl bg-blue-700 px-4 py-3 text-base font-bold text-white transition hover:bg-blue-800 disabled:opacity-40"
+          className="btn-duo btn-duo-green w-full px-4 py-3 text-base disabled:opacity-40"
         >
           {submitting ? 'Comprobando...' : submitLabel}
         </button>
@@ -198,12 +216,16 @@ export function PinKeypad({
           <button
             type="button"
             onClick={onCancel}
-            className="touch-target w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            className="btn-duo btn-duo-white w-full px-4 py-2.5 text-sm"
           >
             Cancelar
           </button>
         )}
       </div>
+
+      <p className="mt-3 text-center text-xs font-semibold text-slate-400">
+        En PC puedes teclear el PIN y pulsar <kbd className="rounded bg-slate-100 px-1.5 py-0.5 text-slate-600">Intro</kbd>
+      </p>
     </div>
   );
 }

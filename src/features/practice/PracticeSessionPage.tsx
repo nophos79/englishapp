@@ -250,14 +250,14 @@ export function PracticeSessionPage() {
           </div>
         </header>
 
-        <div className="mb-5 h-2.5 w-full overflow-hidden rounded-full bg-slate-200">
+        <div className="mb-5 h-4 w-full overflow-hidden rounded-full bg-slate-200 p-0.5">
           <div
-            className="h-full rounded-full bg-blue-600 transition-all"
+            className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-green-500 transition-all duration-300"
             style={{ width: `${((session.currentIndex + 1) / session.questions.length) * 100}%` }}
           />
         </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-3xl border-2 border-slate-200 bg-white p-6 shadow-md">
           {currentQuestion && (
             <ExerciseRenderer
               exercise={currentQuestion.exercise}
@@ -271,26 +271,26 @@ export function PracticeSessionPage() {
 
           {currentQuestion?.submitted && currentQuestion.evaluation && (
             <div
-              className={`mt-5 rounded-2xl border p-4 ${
+              className={`mt-5 rounded-2xl border-2 p-4 ${
                 currentQuestion.evaluation.isCorrect
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
-                  : 'border-rose-200 bg-rose-50 text-rose-900'
+                  ? 'border-emerald-300 bg-emerald-50 text-emerald-950'
+                  : 'border-rose-300 bg-rose-50 text-rose-950'
               }`}
             >
-              <div className="flex items-center gap-2 font-extrabold">
+              <div className="flex items-center gap-2 text-base font-black">
                 {currentQuestion.evaluation.isCorrect ? (
                   <>
-                    <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                    <span>¡Muy bien! Respuesta correcta.</span>
+                    <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+                    <span>¡Genial! Respuesta correcta 🎉</span>
                   </>
                 ) : (
                   <>
-                    <XCircle className="h-5 w-5 text-rose-600" />
+                    <XCircle className="h-6 w-6 text-rose-600" />
                     <span>Respuesta correcta: {currentQuestion.evaluation.expectedAnswers.join(' / ')}</span>
                   </>
                 )}
               </div>
-              <p className="mt-1.5 text-sm">{currentQuestion.evaluation.explanationEs}</p>
+              <p className="mt-1.5 text-sm font-semibold">{currentQuestion.evaluation.explanationEs}</p>
             </div>
           )}
 
@@ -300,7 +300,7 @@ export function PracticeSessionPage() {
                 type="button"
                 disabled={!hasValidInput}
                 onClick={() => setSession((prev) => (prev ? submitPracticeAnswer(prev, currentInput) : prev))}
-                className="touch-target w-full rounded-2xl bg-blue-700 py-3.5 text-base font-bold text-white transition hover:bg-blue-800 disabled:opacity-40"
+                className="btn-duo btn-duo-green w-full py-3.5 text-base disabled:opacity-40"
               >
                 Comprobar respuesta
               </button>
@@ -311,9 +311,9 @@ export function PracticeSessionPage() {
                   setSession((prev) => (prev ? advancePracticeQuestion(prev) : prev));
                   setCurrentInput('');
                 }}
-                className="touch-target w-full rounded-2xl bg-emerald-600 py-3.5 text-base font-bold text-white transition hover:bg-emerald-700"
+                className="btn-duo btn-duo-blue w-full py-3.5 text-base"
               >
-                {session.currentIndex + 1 === session.questions.length ? 'Ver resultado final' : 'Siguiente pregunta'}
+                {session.currentIndex + 1 === session.questions.length ? 'Ver resultado final 🏆' : 'Siguiente pregunta →'}
               </button>
             )}
           </div>

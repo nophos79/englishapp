@@ -45,22 +45,30 @@ export function ExerciseRenderer({
       </div>
 
       {exercise.type === 'multiple_choice' && (
-        <div className="grid gap-2.5">
-          {(shuffledOptions ?? exercise.options ?? []).map((option) => {
+        <div className="grid gap-3">
+          {(shuffledOptions ?? exercise.options ?? []).map((option, idx) => {
             const selected = value === option;
+            const letter = String.fromCharCode(65 + idx);
             return (
               <button
                 key={option}
                 type="button"
                 disabled={disabled}
                 onClick={() => onChange(option)}
-                className={`touch-target w-full rounded-2xl border-2 px-4 py-3.5 text-left text-base font-bold transition ${
+                className={`touch-target flex w-full items-center gap-3 rounded-2xl border-2 border-b-4 px-4 py-3.5 text-left text-base font-extrabold transition active:translate-y-0.5 ${
                   selected
-                    ? 'border-blue-600 bg-blue-50 text-blue-900'
-                    : 'border-slate-200 bg-white text-slate-800 hover:border-blue-300 hover:bg-slate-50'
+                    ? 'border-sky-500 bg-sky-50 text-sky-900'
+                    : 'border-slate-200 bg-white text-slate-800 hover:border-sky-300 hover:bg-sky-50/40'
                 } disabled:cursor-not-allowed disabled:opacity-80`}
               >
-                {option}
+                <span
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-xs font-black ${
+                    selected ? 'bg-sky-500 text-white' : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  {letter}
+                </span>
+                <span>{option}</span>
               </button>
             );
           })}
