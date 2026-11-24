@@ -13,6 +13,7 @@ import {
   getActiveExamSession,
   saveActiveExamSession,
 } from '../../services/localDb';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { ExerciseRenderer } from './ExerciseRenderer';
 
 export function ExamRunnerPage() {
@@ -23,6 +24,7 @@ export function ExamRunnerPage() {
   const [exam, setExam] = useState<CustomExam | null>(null);
   const [session, setSession] = useState<ActiveExamSession | null>(null);
   const [submittedAttempt, setSubmittedAttempt] = useState<AttemptRecord | null>(null);
+  const [pendingDialog, setPendingDialog] = useState<'deliver' | 'abandon' | null>(null);
   const hiddenAtRef = useRef<number | null>(null);
   const sessionRef = useRef<ActiveExamSession | null>(null);
 
@@ -189,28 +191,23 @@ export function ExamRunnerPage() {
     }
   };
 
-  const handleDeliver = async () => {
-    const answeredCount = exercises.filter((ex) => {
-      const v = session?.answers[ex.id];
-      if (!v) return false;
-      if (typeof v === 'string') return v.trim().length > 0;
-      return Object.values(v).some(Boolean);
-    }).length;
+  const answeredCount = useMemo(
+    () =>
+      exercises.filter((ex) => {
+        const v = session?.answers[ex.id];
+        if (!v) return false;
+        if (typeof v === 'string') return v.trim().length > 0;
+        return Object.values(v).some(Boolean);
+      }).length,
+    [exercises, session],
+  );
 
-    const msg =
-      answeredCount < exercises.length
-        ? `Te faltan ${exercises.length - answeredCount} preguntas por contestar. ¿Entregar examen igualmente? No podrás cambiar tus respuestas.`
-        : '¿Seguro que quieres entregar el examen? Una vez entregado quedará guardado para tus padres.';
-    if (!window.confirm(msg)) return;
-    await finalizeExam('completed');
+  const handleDeliver = () => {
+    setPendingDialog('deliver');
   };
 
-  const handleAbandon = async () => {
-    const ok = window.confirm(
-      'Si abandonas el examen, quedará registrado como ABANDONADO en el historial de tus padres. ¿Continuar?',
-    );
-    if (!ok) return;
-    await finalizeExam('abandoned');
+  const handleAbandon = () => {
+    setPendingDialog('abandon');
   };
 
   if (submittedAttempt && exam) {
@@ -392,7 +389,7 @@ export function ExamRunnerPage() {
             ) : (
               <button
                 type="button"
-                onClick={() => void handleDeliver()}
+                onClick={handleDeliver}
                 className="touch-target rounded-2xl bg-emerald-600 px-6 py-3 text-sm font-bold text-white hover:bg-emerald-700"
               >
                 Entregar examen
@@ -401,6 +398,31 @@ export function ExamRunnerPage() {
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={pendingDialog !== null}
+        tone={pendingDialog === 'deliver' ? 'primary' : 'danger'}
+        title={pendingDialog === 'deliver' ? '¿Entregar el examen?' : '¿Abandonar el examen?'}
+        description={
+          pendingDialog === 'deliver'
+            ? answeredCount < exercises.length
+              ? `Te faltan ${exercises.length - answeredCount} preguntas por contestar. Una vez entregado no podrás cambiar tus respuestas.`
+              : 'Una vez entregado quedará guardado con tu nota en el historial de tus padres.'
+            : 'Si abandonas ahora, quedará registrado como ABANDONADO en el historial de tus padres.'
+        }
+        confirmLabel={pendingDialog === 'deliver' ? 'Sí, entregar examen' : 'Abandonar examen'}
+        cancelLabel={pendingDialog === 'deliver' ? 'Revisar respuestas' : 'Seguir en el examen'}
+        onCancel={() => setPendingDialog(null)}
+        onConfirm={() => {
+          const target = pendingDialog;
+          setPendingDialog(null);
+          if (target === 'deliver') {
+            void finalizeExam('completed');
+          } else if (target === 'abandon') {
+            void finalizeExam('abandoned');
+          }
+        }}
+      />
     </div>
   );
 }

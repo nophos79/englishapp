@@ -17,6 +17,7 @@ import {
 } from '../../domain/sessionMachine';
 import type { AnswerDetail, AttemptMode, ExerciseItem } from '../../domain/types';
 import { familyRepository, generateUuid } from '../../services/familyRepository';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { ExerciseRenderer } from './ExerciseRenderer';
 
 export function PracticeSessionPage() {
@@ -37,6 +38,7 @@ export function PracticeSessionPage() {
   const [currentInput, setCurrentInput] = useState<string | Record<string, string>>('');
   const [title, setTitle] = useState('Sesión de práctica');
   const [saved, setSaved] = useState(false);
+  const [showExitDialog, setShowExitDialog] = useState(false);
 
   const activeStudentId = activeStudent?.id;
 
@@ -198,9 +200,10 @@ export function PracticeSessionPage() {
 
   const isSessionFinished = session?.finished;
   const isQuestionSubmitted = currentQuestion?.submitted;
+  const answeredCount = session ? session.questions.filter((q) => q.submitted).length : 0;
 
   useEffect(() => {
-    if (!session || isSessionFinished || !currentQuestion) return;
+    if (!session || isSessionFinished || !currentQuestion || showExitDialog) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Enter') return;
@@ -219,16 +222,24 @@ export function PracticeSessionPage() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [session, isSessionFinished, currentQuestion, isQuestionSubmitted, hasValidInput, currentInput]);
+  }, [
+    session,
+    isSessionFinished,
+    currentQuestion,
+    isQuestionSubmitted,
+    showExitDialog,
+    hasValidInput,
+    currentInput,
+  ]);
 
   if (!activeStudent || !session) {
     return <div className="p-8 text-center text-slate-600">Cargando sesión...</div>;
   }
 
   const handleExit = () => {
-    if (!session.finished) {
-      const ok = window.confirm('¿Seguro que quieres salir antes de terminar la sesión?');
-      if (!ok) return;
+    if (!session.finished && answeredCount > 0) {
+      setShowExitDialog(true);
+      return;
     }
     navigate(returnPath);
   };
@@ -426,6 +437,22 @@ export function PracticeSessionPage() {
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={showExitDialog}
+        tone="amber"
+        title="¿Salir de esta actividad?"
+        description={`Llevas ${answeredCount} de ${session.questions.length} ${
+          answeredCount === 1 ? 'pregunta contestada' : 'preguntas contestadas'
+        }. Si sales ahora perderás el progreso de este intento.`}
+        cancelLabel="Seguir practicando"
+        confirmLabel="Salir sin guardar"
+        onCancel={() => setShowExitDialog(false)}
+        onConfirm={() => {
+          setShowExitDialog(false);
+          navigate(returnPath);
+        }}
+      />
     </div>
   );
 }
