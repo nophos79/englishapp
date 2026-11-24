@@ -274,7 +274,7 @@ export function ExamRunnerPage() {
             onClick={() => navigate('/student')}
             className="touch-target mt-6 w-full rounded-2xl bg-blue-700 py-3.5 font-bold text-white hover:bg-blue-800"
           >
-            Volver a mi curso
+            Volver a mis unidades
           </button>
         </div>
       </div>
@@ -286,9 +286,9 @@ export function ExamRunnerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 p-4 sm:p-6">
-      <div className="mx-auto max-w-2xl">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs font-bold text-amber-900">
+    <div className="min-h-screen bg-slate-100 px-4 py-3 sm:px-6 sm:py-4">
+      <div className="mx-auto max-w-3xl">
+        <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2 text-xs font-bold text-amber-900">
           <span className="inline-flex items-center gap-1.5">
             <ShieldAlert className="h-4 w-4" /> Modo Examen: bancos bloqueados · Sin pistas · Salidas de pantalla registradas
           </span>
@@ -304,7 +304,7 @@ export function ExamRunnerPage() {
         {(session.focusLossCount ?? 0) > 0 && (
           <div
             role="alert"
-            className="mb-4 flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-bold text-rose-800"
+            className="mb-2.5 flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-bold text-rose-800"
           >
             <EyeOff className="h-4 w-4 shrink-0" />
             <span>
@@ -315,14 +315,14 @@ export function ExamRunnerPage() {
           </div>
         )}
 
-        <header className="mb-4 flex items-center justify-between">
+        <header className="mb-2.5 flex items-center justify-between">
           <h1 className="text-lg font-extrabold text-slate-900">{exam.title}</h1>
           <span className="text-sm font-extrabold text-blue-700">
             {session.currentIndex + 1} / {exercises.length}
           </span>
         </header>
 
-        <div className="mb-4 flex flex-wrap gap-1.5">
+        <div className="mb-3 flex flex-wrap gap-1.5">
           {exercises.map((ex, idx) => {
             const answered = Boolean(session.answers[ex.id]);
             return (
@@ -344,7 +344,7 @@ export function ExamRunnerPage() {
           })}
         </div>
 
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
           <ExerciseRenderer
             exercise={currentExercise}
             shuffledOptions={
@@ -370,7 +370,7 @@ export function ExamRunnerPage() {
             isExamMode
           />
 
-          <div className="mt-6 flex flex-wrap justify-between gap-2">
+          <div className="mt-4 flex flex-wrap justify-between gap-2">
             <button
               type="button"
               disabled={session.currentIndex === 0}

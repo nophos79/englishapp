@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   BookMarked,
@@ -15,6 +15,16 @@ import { useApp } from '../../context/AppContext';
 import { COURSES, getCourse, getOrderedUnitsForCourse } from '../../data/curriculum';
 import type { AttemptRecord, CourseId, CustomExam } from '../../domain/types';
 import { familyRepository } from '../../services/familyRepository';
+
+const VALID_COURSE_IDS: readonly CourseId[] = ['3p', '4p', '5p', '6p'];
+
+function isCourseId(value: string | null): value is CourseId {
+  return value !== null && (VALID_COURSE_IDS as readonly string[]).includes(value);
+}
+
+function courseStorageKey(studentId: string): string {
+  return `englishapp_course_${studentId}`;
+}
 
 const TERM_THEMES = {
   1: {
@@ -40,23 +50,87 @@ const TERM_THEMES = {
 export function StudentRoadmapPage() {
   const { activeStudent, activeExamId } = useApp();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [selectedCourseId, setSelectedCourseId] = useState<CourseId>(
-    activeStudent?.courseId ?? '5p',
-  );
+  const activeStudentId = activeStudent?.id;
+  const defaultCourseId = activeStudent?.courseId ?? '5p';
+  const paramCourse = searchParams.get('course');
+  const paramUnit = searchParams.get('unit');
+
+  const [selectedCourseId, setSelectedCourseId] = useState<CourseId>(() => {
+    if (isCourseId(paramCourse)) return paramCourse;
+    if (activeStudentId) {
+      try {
+        const stored = sessionStorage.getItem(courseStorageKey(activeStudentId));
+        if (isCourseId(stored)) return stored;
+      } catch {
+        // Ignore storage restrictions
+      }
+    }
+    return defaultCourseId;
+  });
   const [unitAccess, setUnitAccess] = useState<Record<string, boolean>>({});
   const [exams, setExams] = useState<CustomExam[]>([]);
   const [attempts, setAttempts] = useState<AttemptRecord[]>([]);
   const [pendingMistakes, setPendingMistakes] = useState(0);
+  const scrolledUnitRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (activeStudent) {
-      setSelectedCourseId(activeStudent.courseId);
+    if (!activeStudentId) return;
+
+    if (isCourseId(paramCourse)) {
+      setSelectedCourseId(paramCourse);
+      try {
+        sessionStorage.setItem(courseStorageKey(activeStudentId), paramCourse);
+      } catch {
+        // Ignore storage restrictions
+      }
+      return;
     }
-  }, [activeStudent]);
+
+    try {
+      const stored = sessionStorage.getItem(courseStorageKey(activeStudentId));
+      if (isCourseId(stored)) {
+        setSelectedCourseId(stored);
+        return;
+      }
+    } catch {
+      // Ignore storage restrictions
+    }
+
+    setSelectedCourseId(defaultCourseId);
+  }, [activeStudentId, paramCourse, defaultCourseId]);
+
+  const handleSelectCourse = (courseId: CourseId) => {
+    setSelectedCourseId(courseId);
+    if (activeStudentId) {
+      try {
+        sessionStorage.setItem(courseStorageKey(activeStudentId), courseId);
+      } catch {
+        // Ignore storage restrictions
+      }
+    }
+    setSearchParams({ course: courseId }, { replace: true });
+  };
 
   useEffect(() => {
-    if (!activeStudent) {
+    if (!paramUnit) return;
+    const key = `${selectedCourseId}:${paramUnit}`;
+    if (scrolledUnitRef.current === key) return;
+
+    const timer = window.setTimeout(() => {
+      const el = document.getElementById(`unit-${paramUnit}`);
+      if (el) {
+        scrolledUnitRef.current = key;
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 120);
+
+    return () => window.clearTimeout(timer);
+  }, [paramUnit, selectedCourseId]);
+
+  useEffect(() => {
+    if (!activeStudentId) {
       navigate('/');
       return;
     }
@@ -65,10 +139,10 @@ export function StudentRoadmapPage() {
     async function load() {
       await familyRepository.refreshFromRemote();
       const [access, examList, attemptList, mistakes] = await Promise.all([
-        familyRepository.getUnitAccess(activeStudent!.id),
-        familyRepository.listExams(activeStudent!.id),
-        familyRepository.listAttempts(activeStudent!.id),
-        familyRepository.listPendingMistakes(activeStudent!.id),
+        familyRepository.getUnitAccess(activeStudentId!),
+        familyRepository.listExams(activeStudentId!),
+        familyRepository.listAttempts(activeStudentId!),
+        familyRepository.listPendingMistakes(activeStudentId!),
       ]);
       if (!cancelled) {
         setUnitAccess(access);
@@ -81,7 +155,7 @@ export function StudentRoadmapPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeStudent, navigate]);
+  }, [activeStudentId, navigate]);
 
   if (!activeStudent) return null;
 
@@ -200,7 +274,7 @@ export function StudentRoadmapPage() {
                 <button
                   key={c.id}
                   type="button"
-                  onClick={() => setSelectedCourseId(c.id)}
+                  onClick={() => handleSelectCourse(c.id)}
                   className={`btn-duo flex flex-col items-center justify-center px-3 py-2.5 text-center ${
                     isSelected ? 'btn-duo-green' : 'btn-duo-white'
                   }`}
@@ -238,11 +312,12 @@ export function StudentRoadmapPage() {
                     return (
                       <div
                         key={unit.id}
-                        className={`flex flex-col justify-between rounded-3xl border-2 border-b-4 p-5 transition ${
+                        id={`unit-${unit.id}`}
+                        className={`flex scroll-mt-24 flex-col justify-between rounded-3xl border-2 border-b-4 p-5 transition ${
                           enabled
                             ? `${theme.border} bg-white shadow-xs`
                             : 'border-dashed border-slate-200 bg-slate-100/80 opacity-75'
-                        }`}
+                        } ${paramUnit === unit.id ? 'ring-2 ring-sky-400 ring-offset-2' : ''}`}
                       >
                         <div>
                           <div className="flex items-center justify-between gap-2">

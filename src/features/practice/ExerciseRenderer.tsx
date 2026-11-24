@@ -83,10 +83,10 @@ export function ExerciseRenderer({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-block rounded-full bg-emerald-100 px-3 py-1 text-xs font-black uppercase tracking-wide text-emerald-800">
+          <span className="inline-block rounded-full bg-emerald-100 px-3 py-0.5 text-[11px] font-black uppercase tracking-wide text-emerald-800">
             {exercise.skill === 'vocabulary'
               ? 'Vocabulario'
               : exercise.skill === 'grammar'
@@ -95,44 +95,44 @@ export function ExerciseRenderer({
                   ? 'Verbos Irregulares'
                   : 'Expresiones'}
           </span>
-          <span className="inline-block rounded-full bg-sky-100 px-3 py-1 text-xs font-extrabold text-sky-800">
+          <span className="inline-block rounded-full bg-sky-100 px-3 py-0.5 text-[11px] font-extrabold text-sky-800">
             {TYPE_BADGES[exercise.type]}
           </span>
         </div>
 
-        <h2 className="mt-2.5 text-lg font-black text-slate-900 sm:text-xl">{exercise.promptEs}</h2>
+        <h2 className="mt-1.5 text-base font-black text-slate-900 sm:text-lg">{exercise.promptEs}</h2>
 
         {exercise.promptEn && (
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border-2 border-sky-200 bg-sky-50 px-4 py-3.5">
-            <p className="text-lg font-black text-sky-950">{exercise.promptEn}</p>
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-2xl border-2 border-sky-200 bg-sky-50 px-3.5 py-2.5">
+            <p className="text-base font-black text-sky-950 sm:text-lg">{exercise.promptEn}</p>
             {showAudio && <SpeakButton text={exercise.promptEn.replace(/___/g, '')} compact />}
           </div>
         )}
 
         {/* LISTENING AUDIO CONTROLS (Duolingo normal + slow turtle buttons) */}
         {isListening && exercise.audioText && (
-          <div className="mt-4 rounded-3xl border-2 border-sky-200 bg-gradient-to-r from-sky-50 to-indigo-50 p-5 text-center">
+          <div className="mt-2.5 rounded-2xl border-2 border-sky-200 bg-gradient-to-r from-sky-50 to-indigo-50 px-4 py-3 text-center sm:flex sm:items-center sm:justify-between sm:gap-3 sm:text-left">
             {speechService.isSupported() ? (
               <>
-                <p className="mb-3 text-xs font-extrabold uppercase tracking-wide text-sky-800">
+                <p className="mb-2 text-xs font-extrabold uppercase tracking-wide text-sky-800 sm:mb-0">
                   Pulsa para escuchar tantas veces como necesites
                 </p>
-                <div className="flex flex-wrap items-center justify-center gap-3">
+                <div className="flex flex-wrap items-center justify-center gap-2.5 sm:shrink-0">
                   <button
                     type="button"
                     onClick={() => speechService.speakEnglish(exercise.audioText!)}
-                    className="btn-duo btn-duo-blue inline-flex items-center gap-2.5 px-6 py-3.5 text-base"
+                    className="btn-duo btn-duo-blue inline-flex items-center gap-2 px-5 py-2.5 text-sm sm:text-base"
                   >
-                    <Volume2 className="h-6 w-6" />
+                    <Volume2 className="h-5 w-5" />
                     Escuchar
                   </button>
                   <button
                     type="button"
                     onClick={() => speechService.speakEnglishSlow(exercise.audioText!)}
                     title="Escuchar despacio"
-                    className="btn-duo btn-duo-white inline-flex items-center gap-2 px-4 py-3.5 text-sm font-black text-sky-800 hover:border-sky-400"
+                    className="btn-duo btn-duo-white inline-flex items-center gap-2 px-3.5 py-2.5 text-sm font-black text-sky-800 hover:border-sky-400"
                   >
-                    <Snail className="h-5 w-5 text-sky-600" />
+                    <Snail className="h-4 w-4 text-sky-600" />
                     Despacio
                   </button>
                 </div>
@@ -151,7 +151,7 @@ export function ExerciseRenderer({
 
       {/* 1. MULTIPLE CHOICE & LISTENING CHOICE */}
       {(exercise.type === 'multiple_choice' || exercise.type === 'listening_choice') && (
-        <div className="grid gap-3">
+        <div className="grid gap-2.5 sm:grid-cols-2">
           {(shuffledOptions ?? exercise.options ?? []).map((option, idx) => {
             const selected = value === option;
             const letter = String.fromCharCode(65 + idx);
@@ -161,14 +161,14 @@ export function ExerciseRenderer({
                 type="button"
                 disabled={disabled}
                 onClick={() => onChange(option)}
-                className={`touch-target flex w-full items-center gap-3 rounded-2xl border-2 border-b-4 px-4 py-3.5 text-left text-base font-extrabold transition active:translate-y-0.5 ${
+                className={`touch-target flex w-full items-center gap-3 rounded-2xl border-2 border-b-4 px-3.5 py-2.5 text-left text-sm font-extrabold transition active:translate-y-0.5 sm:text-base ${
                   selected
                     ? 'border-sky-500 bg-sky-50 text-sky-900'
                     : 'border-slate-200 bg-white text-slate-800 hover:border-sky-300 hover:bg-sky-50/40'
                 } disabled:cursor-not-allowed disabled:opacity-80`}
               >
                 <span
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-xs font-black ${
+                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-xs font-black ${
                     selected ? 'bg-sky-500 text-white' : 'bg-slate-100 text-slate-600'
                   }`}
                 >
@@ -199,14 +199,14 @@ export function ExerciseRenderer({
             value={typeof value === 'string' ? value : ''}
             onChange={(e) => onChange(e.target.value)}
             placeholder="Escribe aquí..."
-            className="touch-target w-full rounded-2xl border-2 border-slate-300 bg-white px-4 py-3 text-lg font-extrabold text-slate-900 focus:border-sky-500 focus:outline-none disabled:bg-slate-100"
+            className="touch-target w-full rounded-2xl border-2 border-slate-300 bg-white px-4 py-2.5 text-base font-extrabold text-slate-900 focus:border-sky-500 focus:outline-none disabled:bg-slate-100 sm:text-lg"
           />
         </div>
       )}
 
       {/* 3. MATCHING */}
       {exercise.type === 'matching' && (
-        <div className="space-y-2.5">
+        <div className="space-y-2">
           <p className="text-xs font-bold text-slate-500">
             Elige la pareja correcta para cada término de la izquierda:
           </p>
@@ -216,9 +216,9 @@ export function ExerciseRenderer({
             return (
               <div
                 key={pair.left}
-                className="flex flex-col gap-2 rounded-2xl border-2 border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-2 rounded-2xl border-2 border-slate-200 bg-slate-50 p-2.5 sm:flex-row sm:items-center sm:justify-between"
               >
-                <span className="text-base font-black text-slate-900">{pair.left}</span>
+                <span className="text-sm font-black text-slate-900 sm:text-base">{pair.left}</span>
                 <select
                   disabled={disabled}
                   value={currentRight}
@@ -229,7 +229,7 @@ export function ExerciseRenderer({
                       [pair.left]: e.target.value,
                     })
                   }
-                  className="touch-target rounded-xl border-2 border-slate-300 bg-white px-3 py-2 text-sm font-extrabold text-slate-800 sm:w-56"
+                  className="touch-target rounded-xl border-2 border-slate-300 bg-white px-3 py-1.5 text-sm font-extrabold text-slate-800 sm:w-56"
                 >
                   <option value="">-- Selecciona --</option>
                   {(shuffledRightPairs ?? (exercise.pairs ?? []).map((p) => p.right)).map((opt) => (
@@ -246,7 +246,7 @@ export function ExerciseRenderer({
 
       {/* 4. SENTENCE ORDER (Duolingo word-bank builder) */}
       {exercise.type === 'sentence_order' && (
-        <div className="space-y-4">
+        <div className="space-y-2.5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500">
               Toca las fichas en el orden correcto para construir la frase:
@@ -264,7 +264,7 @@ export function ExerciseRenderer({
 
           <div
             aria-label="Frase construida"
-            className="flex min-h-16 flex-wrap items-center gap-2 rounded-2xl border-2 border-dashed border-sky-300 bg-sky-50/50 p-3"
+            className="flex min-h-14 flex-wrap items-center gap-2 rounded-2xl border-2 border-dashed border-sky-300 bg-sky-50/50 p-2.5"
           >
             {selectedIndices.length === 0 ? (
               <span className="text-sm font-semibold text-slate-400">
@@ -294,7 +294,7 @@ export function ExerciseRenderer({
                   type="button"
                   disabled={disabled || used}
                   onClick={() => handleSelectToken(idx)}
-                  className={`btn-duo px-3.5 py-2 text-sm font-black transition ${
+                  className={`btn-duo px-3 py-1.5 text-sm font-black transition ${
                     used
                       ? 'border-slate-200 bg-slate-100 text-transparent shadow-none'
                       : 'btn-duo-white text-slate-800 hover:border-sky-400'
@@ -310,7 +310,7 @@ export function ExerciseRenderer({
 
       {/* 5. WORD BUILDER (Compound words & word formation puzzle) */}
       {exercise.type === 'word_builder' && (
-        <div className="space-y-3">
+        <div className="space-y-2">
           <p className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
             <Puzzle className="h-4 w-4 text-violet-600" />
             Une cada primera parte con su terminación para formar palabras en inglés:
@@ -321,10 +321,10 @@ export function ExerciseRenderer({
             return (
               <div
                 key={pair.left}
-                className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl border-2 border-violet-200 bg-violet-50/50 p-3.5"
+                className="flex flex-wrap items-center justify-between gap-2.5 rounded-2xl border-2 border-violet-200 bg-violet-50/50 p-2.5"
               >
                 <div className="flex items-center gap-2">
-                  <span className="rounded-xl bg-violet-600 px-3 py-1.5 text-base font-black text-white shadow-xs">
+                  <span className="rounded-xl bg-violet-600 px-2.5 py-1 text-sm font-black text-white shadow-xs sm:text-base">
                     {pair.left}
                   </span>
                   <span className="text-lg font-black text-violet-500">+</span>
@@ -350,7 +350,7 @@ export function ExerciseRenderer({
                 </div>
 
                 {chosenRight && (
-                  <span className="rounded-xl bg-emerald-100 px-3 py-1 text-sm font-black text-emerald-800">
+                  <span className="rounded-xl bg-emerald-100 px-2.5 py-0.5 text-xs font-black text-emerald-800 sm:text-sm">
                     = {pair.left}
                     {chosenRight}
                   </span>
@@ -363,12 +363,12 @@ export function ExerciseRenderer({
 
       {/* 6. ODD ONE OUT (2x2 playful cards) */}
       {exercise.type === 'odd_one_out' && (
-        <div className="space-y-2.5">
+        <div className="space-y-2">
           <p className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
             <Search className="h-4 w-4 text-amber-600" />
             Toca la palabra intrusa que NO encaja con las otras tres:
           </p>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2.5">
             {(shuffledOptions ?? exercise.options ?? []).map((option) => {
               const selected = value === option;
               return (
@@ -377,7 +377,7 @@ export function ExerciseRenderer({
                   type="button"
                   disabled={disabled}
                   onClick={() => onChange(option)}
-                  className={`touch-target flex min-h-20 items-center justify-center rounded-2xl border-2 border-b-4 px-4 py-4 text-center text-lg font-black transition active:translate-y-0.5 ${
+                  className={`touch-target flex min-h-14 items-center justify-center rounded-2xl border-2 border-b-4 px-3.5 py-3 text-center text-base font-black transition active:translate-y-0.5 sm:text-lg ${
                     selected
                       ? 'border-amber-500 bg-amber-50 text-amber-950'
                       : 'border-slate-200 bg-white text-slate-800 hover:border-amber-300 hover:bg-amber-50/40'
@@ -398,7 +398,7 @@ export function ExerciseRenderer({
             type="button"
             disabled={disabled}
             onClick={() => onChange('Correcta')}
-            className={`btn-duo flex items-center justify-center gap-2 py-4 text-base ${
+            className={`btn-duo flex items-center justify-center gap-2 py-3 text-base ${
               value === 'Correcta' ? 'btn-duo-green' : 'btn-duo-white text-emerald-700 hover:border-emerald-400'
             }`}
           >
@@ -408,7 +408,7 @@ export function ExerciseRenderer({
             type="button"
             disabled={disabled}
             onClick={() => onChange('Tiene un fallo')}
-            className={`btn-duo flex items-center justify-center gap-2 py-4 text-base ${
+            className={`btn-duo flex items-center justify-center gap-2 py-3 text-base ${
               value === 'Tiene un fallo'
                 ? 'border-rose-700 bg-rose-500 text-white'
                 : 'btn-duo-white text-rose-700 hover:border-rose-400'

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Play, Search, ShieldAlert } from 'lucide-react';
 import { SpeakButton } from '../../components/ui/SpeakButton';
 import { useApp } from '../../context/AppContext';
@@ -9,11 +9,22 @@ import { wordlistBank } from '../../data/banks/wordlist';
 
 type BankTab = 'verbs' | 'expressions' | 'wordlist';
 
+function isBankTab(value: string | null): value is BankTab {
+  return value === 'verbs' || value === 'expressions' || value === 'wordlist';
+}
+
 export function ReferenceBanksPage() {
   const { activeExamId } = useApp();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<BankTab>('verbs');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const paramTab = searchParams.get('tab');
+  const [tab, setTab] = useState<BankTab>(() => (isBankTab(paramTab) ? paramTab : 'verbs'));
   const [query, setQuery] = useState('');
+
+  const handleSelectTab = (next: BankTab) => {
+    setTab(next);
+    setSearchParams({ tab: next }, { replace: true });
+  };
 
   const normalizedQuery = query.trim().toLowerCase();
 
@@ -117,7 +128,7 @@ export function ReferenceBanksPage() {
             <button
               key={t.id}
               type="button"
-              onClick={() => setTab(t.id as BankTab)}
+              onClick={() => handleSelectTab(t.id as BankTab)}
               className={`touch-target rounded-2xl border px-3 py-2.5 text-sm font-bold transition ${
                 tab === t.id
                   ? 'border-blue-600 bg-blue-700 text-white'

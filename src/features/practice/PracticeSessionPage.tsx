@@ -35,6 +35,21 @@ export function PracticeSessionPage() {
 
   const activeStudentId = activeStudent?.id;
 
+  const returnPath = useMemo(() => {
+    if (unitId === 'bank-irregular-verbs') return '/banks?tab=verbs';
+    if (unitId === 'bank-expressions') return '/banks?tab=expressions';
+    if (unitId && unitId !== 'mistakes') {
+      const unit = getUnitById(unitId);
+      if (unit) return `/student?course=${unit.courseId}&unit=${unit.id}`;
+    }
+    return '/student';
+  }, [unitId]);
+
+  const returnLabel =
+    unitId === 'bank-irregular-verbs' || unitId === 'bank-expressions'
+      ? 'Volver al banco de recursos'
+      : 'Volver a mis unidades';
+
   useEffect(() => {
     if (!activeStudentId) {
       navigate('/');
@@ -61,7 +76,7 @@ export function PracticeSessionPage() {
       } else if (unitId) {
         const access = await familyRepository.getUnitAccess(activeStudentId!);
         if (!access[unitId]) {
-          navigate('/student');
+          navigate(returnPath);
           return;
         }
         const unit = getUnitById(unitId);
@@ -95,7 +110,7 @@ export function PracticeSessionPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeStudentId, unitId, mode, focus, navigate]);
+  }, [activeStudentId, unitId, mode, focus, navigate, returnPath]);
 
   const currentQuestion = session?.questions[session.currentIndex];
 
@@ -160,6 +175,31 @@ export function PracticeSessionPage() {
     void persist();
   }, [session, saved, activeStudent, unitId, refreshAll]);
 
+  const isSessionFinished = session?.finished;
+  const isQuestionSubmitted = currentQuestion?.submitted;
+
+  useEffect(() => {
+    if (!session || isSessionFinished || !currentQuestion) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter') return;
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('header')) return;
+
+      if (isQuestionSubmitted) {
+        e.preventDefault();
+        setSession((prev) => (prev ? advancePracticeQuestion(prev) : prev));
+        setCurrentInput('');
+      } else if (hasValidInput && target?.tagName === 'INPUT') {
+        e.preventDefault();
+        setSession((prev) => (prev ? submitPracticeAnswer(prev, currentInput) : prev));
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [session, isSessionFinished, currentQuestion, isQuestionSubmitted, hasValidInput, currentInput]);
+
   if (!activeStudent || !session) {
     return <div className="p-8 text-center text-slate-600">Cargando sesión...</div>;
   }
@@ -169,7 +209,7 @@ export function PracticeSessionPage() {
       const ok = window.confirm('¿Seguro que quieres salir antes de terminar la sesión?');
       if (!ok) return;
     }
-    navigate('/student');
+    navigate(returnPath);
   };
 
   if (session.questions.length === 0) {
@@ -184,10 +224,10 @@ export function PracticeSessionPage() {
           </p>
           <button
             type="button"
-            onClick={() => navigate('/student')}
+            onClick={() => navigate(returnPath)}
             className="touch-target mt-6 w-full rounded-2xl bg-blue-700 py-3 font-bold text-white hover:bg-blue-800"
           >
-            Volver a mi curso
+            {returnLabel}
           </button>
         </div>
       </div>
@@ -238,10 +278,10 @@ export function PracticeSessionPage() {
             </button>
             <button
               type="button"
-              onClick={() => navigate('/student')}
+              onClick={() => navigate(returnPath)}
               className="touch-target w-full rounded-2xl border border-slate-300 bg-white py-3 font-bold text-slate-700 hover:bg-slate-50"
             >
-              Volver a mis unidades
+              {returnLabel}
             </button>
           </div>
         </div>
@@ -250,9 +290,9 @@ export function PracticeSessionPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 sm:p-6">
-      <div className="mx-auto max-w-2xl">
-        <header className="mb-5 flex items-center justify-between gap-3">
+    <div className="flex min-h-screen flex-col bg-slate-50">
+      <div className="mx-auto w-full max-w-3xl flex-1 px-4 pt-3 pb-4 sm:px-6 sm:pt-4">
+        <header className="mb-2.5 flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={handleExit}
@@ -268,14 +308,14 @@ export function PracticeSessionPage() {
           </div>
         </header>
 
-        <div className="mb-5 h-4 w-full overflow-hidden rounded-full bg-slate-200 p-0.5">
+        <div className="mb-3 h-3 w-full overflow-hidden rounded-full bg-slate-200 p-0.5">
           <div
             className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-green-500 transition-all duration-300"
             style={{ width: `${((session.currentIndex + 1) / session.questions.length) * 100}%` }}
           />
         </div>
 
-        <div className="rounded-3xl border-2 border-slate-200 bg-white p-6 shadow-md">
+        <div className="rounded-3xl border-2 border-slate-200 bg-white p-4 shadow-md sm:p-5">
           {currentQuestion && (
             <ExerciseRenderer
               exercise={currentQuestion.exercise}
@@ -287,60 +327,82 @@ export function PracticeSessionPage() {
               disabled={currentQuestion.submitted}
             />
           )}
+        </div>
+      </div>
 
-          {currentQuestion?.submitted && currentQuestion.evaluation && (
-            <div
-              className={`mt-5 rounded-2xl border-2 p-4 ${
-                currentQuestion.evaluation.isCorrect
-                  ? 'border-emerald-300 bg-emerald-50 text-emerald-950'
-                  : 'border-rose-300 bg-rose-50 text-rose-950'
-              }`}
-            >
-              <div className="flex items-center gap-2 text-base font-black">
-                {currentQuestion.evaluation.isCorrect ? (
-                  <>
-                    <CheckCircle2 className="h-6 w-6 text-emerald-600" />
-                    <span>¡Genial! Respuesta correcta 🎉</span>
-                  </>
-                ) : (
-                  <>
-                    <XCircle className="h-6 w-6 text-rose-600" />
-                    <span>Respuesta correcta: {currentQuestion.evaluation.expectedAnswers.join(' / ')}</span>
-                  </>
-                )}
-              </div>
-              <p className="mt-1.5 text-sm font-semibold">{currentQuestion.evaluation.explanationEs}</p>
-              {currentQuestion.exercise.audioText && (
-                <p className="mt-1 text-xs font-extrabold opacity-80">
-                  Audio en inglés: "{currentQuestion.exercise.audioText}"
-                </p>
-              )}
-            </div>
-          )}
-
-          <div className="mt-6">
-            {!currentQuestion?.submitted ? (
+      <div
+        className={`sticky bottom-0 z-10 border-t-2 shadow-[0_-4px_16px_rgba(15,23,42,0.06)] transition-colors ${
+          !currentQuestion?.submitted
+            ? 'border-slate-200 bg-white/95 backdrop-blur'
+            : currentQuestion.evaluation?.isCorrect
+              ? 'border-emerald-300 bg-emerald-50 text-emerald-950'
+              : 'border-rose-300 bg-rose-50 text-rose-950'
+        }`}
+      >
+        <div className="mx-auto flex max-w-3xl flex-col gap-2.5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6">
+          {!currentQuestion?.submitted ? (
+            <>
+              <p className="hidden text-xs font-bold text-slate-400 sm:block">
+                Elige o escribe tu respuesta y pulsa Comprobar
+              </p>
               <button
+                key="submit-answer"
                 type="button"
                 disabled={!hasValidInput}
                 onClick={() => setSession((prev) => (prev ? submitPracticeAnswer(prev, currentInput) : prev))}
-                className="btn-duo btn-duo-green w-full py-3.5 text-base disabled:opacity-40"
+                className="btn-duo btn-duo-green w-full py-3 text-base disabled:opacity-40 sm:w-auto sm:min-w-56"
               >
                 Comprobar respuesta
               </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setSession((prev) => (prev ? advancePracticeQuestion(prev) : prev));
-                  setCurrentInput('');
-                }}
-                className="btn-duo btn-duo-blue w-full py-3.5 text-base"
-              >
-                {session.currentIndex + 1 === session.questions.length ? 'Ver resultado final 🏆' : 'Siguiente pregunta →'}
-              </button>
-            )}
-          </div>
+            </>
+          ) : (
+            <>
+              <div className="min-w-0 flex-1">
+                {currentQuestion.evaluation && (
+                  <>
+                    <div className="flex items-start gap-2 text-sm font-black sm:text-base">
+                      {currentQuestion.evaluation.isCorrect ? (
+                        <>
+                          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                          <span>¡Genial! Respuesta correcta 🎉</span>
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
+                          <span>
+                            Respuesta correcta: {currentQuestion.evaluation.expectedAnswers.join(' / ')}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    <p className="mt-0.5 text-xs font-semibold leading-snug sm:text-sm">
+                      {currentQuestion.evaluation.explanationEs}
+                    </p>
+                    {currentQuestion.exercise.audioText && (
+                      <p className="mt-0.5 text-xs font-extrabold opacity-80">
+                        Audio en inglés: &ldquo;{currentQuestion.exercise.audioText}&rdquo;
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+              <div className="shrink-0">
+                <button
+                  key="next-question"
+                  type="button"
+                  onClick={() => {
+                    setSession((prev) => (prev ? advancePracticeQuestion(prev) : prev));
+                    setCurrentInput('');
+                  }}
+                  className="btn-duo btn-duo-blue w-full py-3 text-sm sm:w-auto sm:min-w-48 sm:text-base"
+                >
+                  {session.currentIndex + 1 === session.questions.length
+                    ? 'Ver resultado final 🏆'
+                    : 'Siguiente pregunta →'}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
