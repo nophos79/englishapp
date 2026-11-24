@@ -37,8 +37,17 @@ export interface StudentThemeOption {
   label: string;
   emoji: string;
   minBadges: number;
+  isDark: boolean;
+  tagline: string;
   bgClass: string;
   previewClass: string;
+  headerClass: string;
+  headerTitleClass: string;
+  headerSubtitleClass: string;
+  sectionHeadingClass: string;
+  sectionLabelClass: string;
+  cardAccentBorder: string;
+  progressBarClass: string;
 }
 
 export const STUDENT_THEMES: readonly StudentThemeOption[] = [
@@ -47,32 +56,68 @@ export const STUDENT_THEMES: readonly StudentThemeOption[] = [
     label: 'Cielo Clásico',
     emoji: '☀️',
     minBadges: 0,
-    bgClass: 'from-sky-50 via-white to-emerald-50/40',
-    previewClass: 'from-sky-300 to-emerald-300',
+    isDark: false,
+    tagline: '¡Día soleado para aprender inglés!',
+    bgClass: 'from-sky-100 via-sky-50 to-emerald-50',
+    previewClass: 'from-sky-400 to-emerald-400',
+    headerClass: 'border-sky-200 bg-white/95 text-slate-900',
+    headerTitleClass: 'text-slate-900',
+    headerSubtitleClass: 'text-emerald-700',
+    sectionHeadingClass: 'text-slate-900',
+    sectionLabelClass: 'text-slate-600',
+    cardAccentBorder: 'border-sky-200',
+    progressBarClass: 'from-emerald-400 to-green-500',
   },
   {
     id: 'london',
     label: 'Aventura en Londres',
     emoji: '🚌',
     minBadges: 2,
-    bgClass: 'from-rose-50 via-white to-sky-100/60',
-    previewClass: 'from-rose-400 to-sky-400',
+    isDark: false,
+    tagline: 'Welcome to London · Big Ben & Red Bus!',
+    bgClass: 'from-sky-100 via-rose-50/70 to-blue-100/80',
+    previewClass: 'from-blue-700 via-indigo-600 to-rose-500',
+    headerClass: 'border-rose-400/70 bg-gradient-to-r from-blue-900 via-blue-800 to-rose-700 text-white',
+    headerTitleClass: 'text-white',
+    headerSubtitleClass: 'text-sky-100',
+    sectionHeadingClass: 'text-slate-900',
+    sectionLabelClass: 'text-blue-900',
+    cardAccentBorder: 'border-rose-300',
+    progressBarClass: 'from-rose-500 via-amber-400 to-blue-600',
   },
   {
     id: 'jungle',
     label: 'Selva Exploradora',
     emoji: '🌴',
     minBadges: 4,
-    bgClass: 'from-emerald-100/70 via-lime-50/40 to-teal-50',
-    previewClass: 'from-emerald-400 to-lime-400',
+    isDark: false,
+    tagline: 'Into the Jungle · Exploración tropical',
+    bgClass: 'from-emerald-100 via-lime-50 to-teal-100/80',
+    previewClass: 'from-emerald-600 to-lime-500',
+    headerClass: 'border-lime-400/70 bg-gradient-to-r from-emerald-800 via-teal-700 to-lime-600 text-white',
+    headerTitleClass: 'text-white',
+    headerSubtitleClass: 'text-lime-100',
+    sectionHeadingClass: 'text-slate-900',
+    sectionLabelClass: 'text-emerald-900',
+    cardAccentBorder: 'border-emerald-300',
+    progressBarClass: 'from-lime-400 via-emerald-500 to-teal-500',
   },
   {
     id: 'galaxy',
     label: 'Galaxia Estelar',
     emoji: '🌌',
     minBadges: 6,
-    bgClass: 'from-indigo-100/70 via-violet-50/50 to-fuchsia-50/50',
-    previewClass: 'from-indigo-500 to-fuchsia-400',
+    isDark: true,
+    tagline: 'Space Mission · Ready for liftoff!',
+    bgClass: 'from-slate-950 via-indigo-950 to-violet-950',
+    previewClass: 'from-indigo-700 via-violet-600 to-fuchsia-500',
+    headerClass: 'border-violet-500/40 bg-gradient-to-r from-slate-950 via-indigo-900 to-fuchsia-900 text-white',
+    headerTitleClass: 'text-white',
+    headerSubtitleClass: 'text-cyan-200',
+    sectionHeadingClass: 'text-white',
+    sectionLabelClass: 'text-indigo-200',
+    cardAccentBorder: 'border-violet-400',
+    progressBarClass: 'from-cyan-400 via-violet-400 to-fuchsia-500',
   },
 ];
 

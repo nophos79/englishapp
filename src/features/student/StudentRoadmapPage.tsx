@@ -17,6 +17,7 @@ import {
   getStoredStudentThemeId,
   getStudentTheme,
 } from '../../components/ui/Avatars';
+import { ThemeBackdrop, ThemeSceneBanner } from '../../components/ui/ThemeDecor';
 import { useApp } from '../../context/AppContext';
 import {
   COURSES,
@@ -207,8 +208,9 @@ export function StudentRoadmapPage() {
   );
 
   return (
-    <div className={`min-h-screen bg-gradient-to-b ${activeTheme.bgClass} pb-12`}>
-      <header className="sticky top-0 z-10 border-b-2 border-sky-100 bg-white/95 backdrop-blur">
+    <div className={`relative min-h-screen overflow-x-clip bg-gradient-to-b ${activeTheme.bgClass} pb-12`}>
+      <ThemeBackdrop themeId={activeTheme.id} />
+      <header className={`sticky top-0 z-20 border-b-2 backdrop-blur ${activeTheme.headerClass}`}>
         <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3 px-4 py-3.5">
           <div className="flex items-center gap-3">
             <button
@@ -223,9 +225,11 @@ export function StudentRoadmapPage() {
               {avatar.emoji}
             </div>
             <div>
-              <h1 className="text-xl font-black text-slate-900">¡Hola, {activeStudent.nickname}!</h1>
+              <h1 className={`text-xl font-black ${activeTheme.headerTitleClass}`}>
+                ¡Hola, {activeStudent.nickname}!
+              </h1>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-extrabold text-emerald-700">
+                <span className={`text-xs font-extrabold ${activeTheme.headerSubtitleClass}`}>
                   Tu curso: {defaultCourse.label}
                 </span>
                 <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-black text-amber-800">
@@ -257,7 +261,7 @@ export function StudentRoadmapPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl px-4 pt-6">
+      <main className="relative z-10 mx-auto max-w-4xl px-4 pt-6">
         {/* Pending / In-progress Assigned Exams */}
         {exams.length > 0 && (
           <section className="mb-6 rounded-3xl border-2 border-violet-300 bg-gradient-to-r from-violet-50 to-fuchsia-50 p-5 shadow-sm">
@@ -292,7 +296,10 @@ export function StudentRoadmapPage() {
         )}
 
         {/* Explorer Passport & Rewards Strip */}
-        <section className="mb-5 rounded-3xl border-2 border-amber-200 bg-white/95 p-4 shadow-xs">
+        <section className={`mb-5 rounded-3xl border-2 ${activeTheme.cardAccentBorder} bg-white/95 p-4 shadow-sm`}>
+          <div className="mb-3">
+            <ThemeSceneBanner themeId={activeTheme.id} nickname={activeStudent.nickname} />
+          </div>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-2xl">
@@ -399,7 +406,7 @@ export function StudentRoadmapPage() {
 
         {/* Course Selector for Multi-Course Review */}
         <section className="mb-6">
-          <p className="mb-2 text-xs font-black uppercase tracking-wide text-slate-500">
+          <p className={`mb-2 text-xs font-black uppercase tracking-wide ${activeTheme.sectionLabelClass}`}>
             Elige el curso que quieres practicar o repasar:
           </p>
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
@@ -440,7 +447,7 @@ export function StudentRoadmapPage() {
                   <span className={`rounded-2xl px-3.5 py-1 text-xs font-black uppercase shadow-xs ${theme.badge}`}>
                     {term.number}º Trimestre
                   </span>
-                  <h2 className="text-xl font-black text-slate-900">{term.label}</h2>
+                  <h2 className={`text-xl font-black ${activeTheme.sectionHeadingClass}`}>{term.label}</h2>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -455,7 +462,7 @@ export function StudentRoadmapPage() {
                         className={`flex scroll-mt-24 flex-col justify-between rounded-3xl border-2 border-b-4 p-5 transition ${
                           enabled
                             ? `${theme.border} bg-white shadow-xs`
-                            : 'border-dashed border-slate-200 bg-slate-100/80 opacity-75'
+                            : 'border-dashed border-slate-200 bg-slate-100/95 opacity-80'
                         } ${paramUnit === unit.id ? 'ring-2 ring-sky-400 ring-offset-2' : ''}`}
                       >
                         <div>

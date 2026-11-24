@@ -18,7 +18,9 @@ import {
 } from '../../domain/sessionMachine';
 import type { AnswerDetail, AttemptMode, ExerciseItem } from '../../domain/types';
 import { familyRepository, generateUuid } from '../../services/familyRepository';
+import { getStoredStudentThemeId, getStudentTheme } from '../../components/ui/Avatars';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { ThemeBackdrop } from '../../components/ui/ThemeDecor';
 import { ExerciseRenderer } from './ExerciseRenderer';
 
 export function PracticeSessionPage() {
@@ -250,6 +252,8 @@ export function PracticeSessionPage() {
     return <div className="p-8 text-center text-slate-600">Cargando sesión...</div>;
   }
 
+  const activeTheme = getStudentTheme(getStoredStudentThemeId(activeStudent.id));
+
   const handleExit = () => {
     if (!session.finished && answeredCount > 0) {
       setShowExitDialog(true);
@@ -260,8 +264,11 @@ export function PracticeSessionPage() {
 
   if (session.questions.length === 0) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 p-6 text-center">
-        <div className="max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+      <div
+        className={`relative flex min-h-screen flex-col items-center justify-center overflow-x-clip bg-gradient-to-b ${activeTheme.bgClass} p-6 text-center`}
+      >
+        <ThemeBackdrop themeId={activeTheme.id} />
+        <div className="relative z-10 max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
           <div className="mb-3 text-4xl">🎉</div>
           <h1 className="text-2xl font-extrabold text-slate-900">¡Sin errores pendientes!</h1>
           <p className="mt-2 text-sm text-slate-600">
@@ -304,8 +311,11 @@ export function PracticeSessionPage() {
       });
 
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-blue-50 to-slate-100 p-4">
-        <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-lg">
+      <div
+        className={`relative flex min-h-screen flex-col items-center justify-center overflow-x-clip bg-gradient-to-b ${activeTheme.bgClass} p-4`}
+      >
+        <ThemeBackdrop themeId={activeTheme.id} />
+        <div className="relative z-10 w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-lg">
           <h1 className="text-2xl font-extrabold text-slate-900">¡Sesión completada!</h1>
           <p className="mt-1 text-sm font-semibold text-slate-600">{title}</p>
 
@@ -366,8 +376,11 @@ export function PracticeSessionPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
-      <div className="mx-auto w-full max-w-3xl flex-1 px-4 pt-3 pb-4 sm:px-6 sm:pt-4">
+    <div
+      className={`relative flex min-h-screen flex-col overflow-x-clip bg-gradient-to-b ${activeTheme.bgClass}`}
+    >
+      <ThemeBackdrop themeId={activeTheme.id} />
+      <div className="relative z-10 mx-auto w-full max-w-3xl flex-1 px-4 pt-3 pb-4 sm:px-6 sm:pt-4">
         <header className="mb-2.5 flex items-center justify-between gap-3">
           <button
             type="button"
@@ -377,8 +390,18 @@ export function PracticeSessionPage() {
             <ArrowLeft className="h-4 w-4" /> Salir
           </button>
           <div className="text-right">
-            <p className="text-xs font-bold uppercase text-slate-500">{title}</p>
-            <p className="text-sm font-extrabold text-blue-700">
+            <p
+              className={`text-xs font-bold uppercase ${
+                activeTheme.isDark ? 'text-indigo-200' : 'text-slate-600'
+              }`}
+            >
+              {title}
+            </p>
+            <p
+              className={`text-sm font-extrabold ${
+                activeTheme.isDark ? 'text-cyan-300' : 'text-blue-700'
+              }`}
+            >
               Pregunta {session.currentIndex + 1} de {session.questions.length}
             </p>
           </div>
@@ -386,7 +409,7 @@ export function PracticeSessionPage() {
 
         <div className="mb-3 h-3 w-full overflow-hidden rounded-full bg-slate-200 p-0.5">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-green-500 transition-all duration-300"
+            className={`h-full rounded-full bg-gradient-to-r ${activeTheme.progressBarClass} transition-all duration-300`}
             style={{ width: `${((session.currentIndex + 1) / session.questions.length) * 100}%` }}
           />
         </div>

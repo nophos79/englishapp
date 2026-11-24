@@ -20,6 +20,7 @@ import {
   STUDENT_THEMES,
   type StudentThemeId,
 } from '../../components/ui/Avatars';
+import { ThemeBackdrop, ThemeSceneBanner } from '../../components/ui/ThemeDecor';
 import { useApp } from '../../context/AppContext';
 import { getExerciseById } from '../../data/curriculum';
 import { computeFamilyGoalProgress, computeStudentRewards } from '../../domain/rewardsEngine';
@@ -122,8 +123,9 @@ export function StudentRewardsPage() {
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-b ${activeTheme.bgClass} pb-12`}>
-      <header className="sticky top-0 z-10 border-b-2 border-sky-100 bg-white/95 backdrop-blur">
+    <div className={`relative min-h-screen overflow-x-clip bg-gradient-to-b ${activeTheme.bgClass} pb-12`}>
+      <ThemeBackdrop themeId={activeTheme.id} />
+      <header className={`sticky top-0 z-20 border-b-2 backdrop-blur ${activeTheme.headerClass}`}>
         <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3 px-4 py-3.5">
           <div className="flex items-center gap-3">
             <button
@@ -139,10 +141,10 @@ export function StudentRewardsPage() {
               {avatar.emoji}
             </div>
             <div>
-              <h1 className="text-lg font-black text-slate-900 sm:text-xl">
+              <h1 className={`text-lg font-black sm:text-xl ${activeTheme.headerTitleClass}`}>
                 Pasaporte de {activeStudent.nickname}
               </h1>
-              <p className="text-xs font-extrabold text-sky-700">
+              <p className={`text-xs font-extrabold ${activeTheme.headerSubtitleClass}`}>
                 {rewards.rank.emoji} Nv.{rewards.rank.level} · {rewards.rank.title}
               </p>
             </div>
@@ -159,7 +161,7 @@ export function StudentRewardsPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl px-4 pt-6">
+      <main className="relative z-10 mx-auto max-w-4xl px-4 pt-6">
         {toast && (
           <div className="mb-4 rounded-2xl border-2 border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-extrabold text-emerald-900">
             {toast}
@@ -194,7 +196,10 @@ export function StudentRewardsPage() {
         {tab === 'passport' && (
           <div className="space-y-6">
             {/* Explorer Rank Card */}
-            <section className="rounded-3xl border-2 border-sky-200 bg-white p-5 shadow-xs">
+            <section className={`rounded-3xl border-2 ${activeTheme.cardAccentBorder} bg-white p-5 shadow-sm`}>
+              <div className="mb-4">
+                <ThemeSceneBanner themeId={activeTheme.id} nickname={activeStudent.nickname} compact />
+              </div>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-sky-100 text-3xl">
@@ -278,7 +283,7 @@ export function StudentRewardsPage() {
 
             {/* 10 Passport Stamps */}
             <section>
-              <h2 className="mb-3 text-lg font-black text-slate-900">
+              <h2 className={`mb-3 text-lg font-black ${activeTheme.sectionHeadingClass}`}>
                 Sellos de tu Pasaporte ({rewards.earnedBadgesCount}/{rewards.totalBadgesCount})
               </h2>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -406,32 +411,32 @@ export function StudentRewardsPage() {
                       type="button"
                       disabled={!unlocked}
                       onClick={() => handleSelectTheme(t.id, t.label)}
-                      className={`btn-duo flex items-center justify-between gap-3 p-3.5 text-left ${
+                      className={`btn-duo flex flex-col gap-2.5 p-3 text-left ${
                         isCurrent
                           ? 'border-2 border-sky-500 bg-sky-50'
                           : unlocked
                             ? 'btn-duo-white hover:border-sky-300'
-                            : 'border-2 border-slate-200 bg-slate-100 opacity-70'
+                            : 'border-2 border-slate-200 bg-slate-100 opacity-75'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={`flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br ${t.previewClass} text-xl`}
-                        >
-                          {t.emoji}
-                        </div>
+                      <div className={!unlocked ? 'w-full grayscale-[45%]' : 'w-full'}>
+                        <ThemeSceneBanner themeId={t.id} previewOnly />
+                      </div>
+                      <div className="flex w-full items-center justify-between gap-2 px-1">
                         <div>
-                          <p className="text-sm font-black text-slate-900">{t.label}</p>
+                          <p className="text-sm font-black text-slate-900">
+                            {t.emoji} {t.label}
+                          </p>
                           <p className="text-xs font-bold text-slate-500">
                             {unlocked
                               ? isCurrent
                                 ? 'Tema activo ✓'
-                                : 'Pulsa para activar'
-                              : `Requiere ${t.minBadges} sellos`}
+                                : t.tagline
+                              : `Requiere ${t.minBadges} sellos para desbloquear`}
                           </p>
                         </div>
+                        {!unlocked && <Lock className="h-4 w-4 shrink-0 text-slate-400" />}
                       </div>
-                      {!unlocked && <Lock className="h-4 w-4 shrink-0 text-slate-400" />}
                     </button>
                   );
                 })}
