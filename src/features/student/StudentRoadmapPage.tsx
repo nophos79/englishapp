@@ -41,6 +41,7 @@ export function StudentRoadmapPage() {
 
     let cancelled = false;
     async function load() {
+      await familyRepository.refreshFromRemote();
       const [access, examList, attemptList, mistakes] = await Promise.all([
         familyRepository.getUnitAccess(activeStudent!.id),
         familyRepository.listExams(activeStudent!.id),

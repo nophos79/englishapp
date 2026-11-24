@@ -62,6 +62,7 @@ export function ParentDashboardPage() {
     setManagingCourseId(selectedStudent.courseId);
     let active = true;
     async function loadStudentData() {
+      await familyRepository.refreshFromRemote();
       const [access, examList, attemptList] = await Promise.all([
         familyRepository.getUnitAccess(selectedStudent!.id),
         familyRepository.listExams(selectedStudent!.id),
@@ -77,7 +78,7 @@ export function ParentDashboardPage() {
     return () => {
       active = false;
     };
-  }, [selectedStudent]);
+  }, [selectedStudent, tab]);
 
   const showToast = (msg: string) => {
     setFeedbackMsg(msg);
