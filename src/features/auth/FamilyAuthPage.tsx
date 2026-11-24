@@ -37,7 +37,7 @@ export function FamilyAuthPage() {
       <div className="w-full max-w-md rounded-3xl border-2 border-sky-200 bg-white p-8 shadow-xl">
         <div className="mb-6 flex flex-col items-center text-center">
           <img
-            src="./icon.svg"
+            src="./icon-192.png"
             alt="Mascota EnglishApp"
             className="mb-3 h-20 w-20 rounded-3xl shadow-md"
           />

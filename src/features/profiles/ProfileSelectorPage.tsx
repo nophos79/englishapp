@@ -20,7 +20,7 @@ export function ProfileSelectorPage() {
         <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
             <img
-              src="./icon.svg"
+              src="./icon-192.png"
               alt="Mascota EnglishApp"
               className="h-14 w-14 rounded-2xl shadow-md"
             />
