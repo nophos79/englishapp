@@ -1,0 +1,28 @@
+# Dependencies & build
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+*.log
+
+# Environment secrets
+.env
+.env.local
+.env.*.local
+
+# Copyrighted reference PDFs (do not publish to GitHub)
+Docs/
+
+# Test artifacts
+test-results/
+playwright-report/
+blob-report/
+
+# OS & editor files
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+.vscode/
+.idea/
