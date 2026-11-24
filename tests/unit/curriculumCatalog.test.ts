@@ -33,17 +33,20 @@ describe('Curriculum Catalog & Reference Banks (Zod Validation)', () => {
   });
 
   it('validates irregular verbs, expressions, and wordlist banks', () => {
-    expect(irregularVerbsBank.length).toBeGreaterThanOrEqual(40);
+    expect(irregularVerbsBank.length).toBeGreaterThanOrEqual(65);
+    expect(new Set(irregularVerbsBank.map((v) => v.id)).size).toBe(irregularVerbsBank.length);
     for (const v of irregularVerbsBank) {
       expect(irregularVerbSchema.safeParse(v).success).toBe(true);
     }
 
-    expect(expressionsBank.length).toBeGreaterThanOrEqual(30);
+    expect(expressionsBank.length).toBeGreaterThanOrEqual(85);
+    expect(new Set(expressionsBank.map((e) => e.id)).size).toBe(expressionsBank.length);
     for (const e of expressionsBank) {
       expect(expressionEntrySchema.safeParse(e).success).toBe(true);
     }
 
-    expect(wordlistBank.length).toBeGreaterThanOrEqual(50);
+    expect(wordlistBank.length).toBeGreaterThanOrEqual(240);
+    expect(new Set(wordlistBank.map((w) => w.id)).size).toBe(wordlistBank.length);
     for (const w of wordlistBank) {
       expect(wordlistEntrySchema.safeParse(w).success).toBe(true);
     }
