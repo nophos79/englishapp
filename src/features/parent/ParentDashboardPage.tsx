@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  Award,
   BookCheck,
   CheckCircle2,
   ClipboardList,
+  Gift,
   History,
   Lock,
   LogOut,
@@ -15,12 +17,33 @@ import {
 } from 'lucide-react';
 import { AVATARS, getAvatar } from '../../components/ui/Avatars';
 import { useApp } from '../../context/AppContext';
-import { COURSES, getAllExercises, getCourse, getOrderedUnitsForCourse } from '../../data/curriculum';
+import {
+  COURSES,
+  getAllExercises,
+  getCourse,
+  getExerciseById,
+  getOrderedUnitsForCourse,
+} from '../../data/curriculum';
 import { generateExamExercises } from '../../domain/examGenerator';
-import type { AttemptRecord, CourseId, CustomExam, SkillFocus } from '../../domain/types';
+import { computeFamilyGoalProgress, computeStudentRewards } from '../../domain/rewardsEngine';
+import type {
+  AttemptRecord,
+  CourseId,
+  CustomExam,
+  FamilyRewardGoal,
+  FamilyRewardMetric,
+  SkillFocus,
+} from '../../domain/types';
 import { familyRepository } from '../../services/familyRepository';
 
-type ParentTab = 'students' | 'units' | 'exams' | 'history';
+type ParentTab = 'students' | 'units' | 'exams' | 'rewards' | 'history';
+
+const REWARD_PRESETS = [
+  'Elegir la película del viernes',
+  'Elegir la cena del sábado',
+  '30 min extra de juego',
+  'Hacer un postre juntos',
+] as const;
 
 export function ParentDashboardPage() {
   const { students, refreshAll, signOutFamily, localMode } = useApp();
@@ -32,6 +55,7 @@ export function ParentDashboardPage() {
   const [unitAccess, setUnitAccess] = useState<Record<string, boolean>>({});
   const [exams, setExams] = useState<CustomExam[]>([]);
   const [attempts, setAttempts] = useState<AttemptRecord[]>([]);
+  const [familyRewards, setFamilyRewards] = useState<FamilyRewardGoal[]>([]);
   const [expandedAttemptId, setExpandedAttemptId] = useState<string | null>(null);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
 
@@ -45,6 +69,11 @@ export function ParentDashboardPage() {
   const [selectedExamUnits, setSelectedExamUnits] = useState<string[]>([]);
   const [skillFocus, setSkillFocus] = useState<SkillFocus>('mixed');
   const [questionCount, setQuestionCount] = useState(10);
+
+  // Family reward goal form
+  const [rewardTitle, setRewardTitle] = useState('');
+  const [rewardMetric, setRewardMetric] = useState<FamilyRewardMetric>('stars');
+  const [rewardTarget, setRewardTarget] = useState(10);
 
   const selectedStudent = useMemo(
     () => students.find((s) => s.id === selectedStudentId) ?? students[0] ?? null,
@@ -63,15 +92,17 @@ export function ParentDashboardPage() {
     let active = true;
     async function loadStudentData() {
       await familyRepository.refreshFromRemote();
-      const [access, examList, attemptList] = await Promise.all([
+      const [access, examList, attemptList, rewardList] = await Promise.all([
         familyRepository.getUnitAccess(selectedStudent!.id),
         familyRepository.listExams(selectedStudent!.id),
         familyRepository.listAttempts(selectedStudent!.id),
+        familyRepository.listFamilyRewards(selectedStudent!.id),
       ]);
       if (!active) return;
       setUnitAccess(access);
       setExams(examList);
       setAttempts(attemptList);
+      setFamilyRewards(rewardList);
       setSelectedExamUnits([]);
     }
     void loadStudentData();
@@ -79,6 +110,11 @@ export function ParentDashboardPage() {
       active = false;
     };
   }, [selectedStudent, tab]);
+
+  const studentRewards = useMemo(
+    () => computeStudentRewards(attempts, { lookupExercise: getExerciseById }),
+    [attempts],
+  );
 
   const showToast = (msg: string) => {
     setFeedbackMsg(msg);
@@ -150,6 +186,7 @@ export function ParentDashboardPage() {
       await familyRepository.resetStudentProgress(studentId, pin);
       setAttempts([]);
       setExams([]);
+      setFamilyRewards([]);
       showToast(`Progreso de ${nickname} reiniciado.`);
     } catch (err) {
       window.alert(err instanceof Error ? err.message : 'PIN incorrecto.');
@@ -170,6 +207,43 @@ export function ParentDashboardPage() {
     } catch (err) {
       window.alert(err instanceof Error ? err.message : 'PIN incorrecto.');
     }
+  };
+
+  const handleCreateRewardGoal = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!selectedStudent || !rewardTitle.trim()) return;
+    const baselineValue =
+      rewardMetric === 'stars'
+        ? studentRewards.totalEarnedStars
+        : studentRewards.completedSessionsCount;
+
+    await familyRepository.createFamilyReward({
+      studentId: selectedStudent.id,
+      title: rewardTitle.trim(),
+      metric: rewardMetric,
+      targetValue: rewardTarget,
+      baselineValue,
+    });
+    const updated = await familyRepository.listFamilyRewards(selectedStudent.id);
+    setFamilyRewards(updated);
+    setRewardTitle('');
+    showToast(`Premio familiar creado para ${selectedStudent.nickname}.`);
+  };
+
+  const handleRedeemReward = async (rewardId: string) => {
+    if (!selectedStudent) return;
+    await familyRepository.redeemFamilyReward(rewardId);
+    const updated = await familyRepository.listFamilyRewards(selectedStudent.id);
+    setFamilyRewards(updated);
+    showToast('¡Premio marcado como entregado!');
+  };
+
+  const handleDeleteReward = async (rewardId: string) => {
+    if (!selectedStudent) return;
+    await familyRepository.deleteFamilyReward(rewardId);
+    const updated = await familyRepository.listFamilyRewards(selectedStudent.id);
+    setFamilyRewards(updated);
+    showToast('Meta familiar eliminada.');
   };
 
   const toggleExamUnit = (unitId: string) => {
@@ -293,10 +367,11 @@ export function ParentDashboardPage() {
         )}
 
         {/* Navigation Tabs */}
-        <nav className="mb-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <nav className="mb-6 grid grid-cols-2 gap-2 sm:grid-cols-5">
           {[
             { id: 'units', label: 'Ritmo escolar (SA)', icon: BookCheck },
             { id: 'exams', label: 'Crear Exámenes', icon: ClipboardList },
+            { id: 'rewards', label: 'Premios', icon: Gift },
             { id: 'history', label: 'Historial y Notas', icon: History },
             { id: 'students', label: 'Alumnos', icon: Users },
           ].map((item) => {
@@ -707,6 +782,244 @@ export function ParentDashboardPage() {
         )}
 
         {/* TAB 4: STUDENT PROFILES MANAGER */}
+        {tab === 'rewards' && selectedStudent && (() => {
+          const activeGoal = familyRewards.find(
+            (g) => g.status === 'active' || g.status === 'claimed',
+          );
+          const activeGoalProgress = activeGoal
+            ? computeFamilyGoalProgress(activeGoal, studentRewards)
+            : null;
+          const redeemedGoals = familyRewards.filter((g) => g.status === 'redeemed');
+
+          return (
+            <section className="space-y-6">
+              {/* Student Passport Snapshot */}
+              <div className="rounded-3xl border border-slate-200 bg-white p-5">
+                <h2 className="flex items-center gap-2 text-lg font-extrabold text-slate-900">
+                  <Award className="h-5 w-5 text-amber-600" />
+                  Pasaporte de {selectedStudent.nickname}
+                </h2>
+                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <div className="rounded-2xl bg-sky-50 p-3 text-center">
+                    <p className="text-xl font-black text-sky-900">
+                      {studentRewards.rank.emoji} Nv.{studentRewards.rank.level}
+                    </p>
+                    <p className="text-xs font-bold text-sky-700">{studentRewards.rank.title}</p>
+                  </div>
+                  <div className="rounded-2xl bg-amber-50 p-3 text-center">
+                    <p className="text-xl font-black text-amber-900">{studentRewards.totalXp} XP</p>
+                    <p className="text-xs font-bold text-amber-700">Puntos totales</p>
+                  </div>
+                  <div className="rounded-2xl bg-emerald-50 p-3 text-center">
+                    <p className="text-xl font-black text-emerald-900">
+                      {studentRewards.weeklyDaysPracticed}/{studentRewards.weeklyTargetDays} días
+                    </p>
+                    <p className="text-xs font-bold text-emerald-700">Meta semanal</p>
+                  </div>
+                  <div className="rounded-2xl bg-violet-50 p-3 text-center">
+                    <p className="text-xl font-black text-violet-900">
+                      {studentRewards.earnedBadgesCount}/{studentRewards.totalBadgesCount}
+                    </p>
+                    <p className="text-xs font-bold text-violet-700">
+                      Sellos · {studentRewards.totalEarnedStars} ★
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-6 lg:grid-cols-2">
+                {/* Active / Claimed Goal */}
+                <div className="rounded-3xl border border-slate-200 bg-white p-5">
+                  <h2 className="text-lg font-extrabold text-slate-900">Meta Familiar Activa</h2>
+                  {activeGoal && activeGoalProgress ? (
+                    <div
+                      className={`mt-4 rounded-2xl border-2 p-4 ${
+                        activeGoal.status === 'claimed'
+                          ? 'border-emerald-300 bg-emerald-50'
+                          : 'border-amber-200 bg-amber-50/70'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <span
+                            className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-black uppercase ${
+                              activeGoal.status === 'claimed'
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-amber-200 text-amber-900'
+                            }`}
+                          >
+                            {activeGoal.status === 'claimed'
+                              ? '¡Reclamado por el alumno!'
+                              : 'En progreso'}
+                          </span>
+                          <p className="mt-1.5 text-lg font-black text-slate-900">
+                            🎁 {activeGoal.title}
+                          </p>
+                          <p className="text-xs font-semibold text-slate-600">
+                            Meta: {activeGoal.targetValue}{' '}
+                            {activeGoal.metric === 'stars'
+                              ? 'estrellas nuevas'
+                              : 'sesiones completadas'}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteReward(activeGoal.id)}
+                          title="Eliminar meta"
+                          className="touch-target rounded-xl border border-rose-200 bg-white p-2 text-rose-700 hover:bg-rose-50"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      <div className="mt-3">
+                        <div className="mb-1 flex justify-between text-xs font-bold text-slate-700">
+                          <span>Avance</span>
+                          <span>
+                            {activeGoalProgress.current} / {activeGoalProgress.target} (
+                            {activeGoalProgress.percent}%)
+                          </span>
+                        </div>
+                        <div className="h-3 w-full overflow-hidden rounded-full bg-white p-0.5">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-amber-400 to-emerald-500"
+                            style={{ width: `${activeGoalProgress.percent}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {activeGoal.status === 'claimed' && (
+                        <button
+                          type="button"
+                          onClick={() => void handleRedeemReward(activeGoal.id)}
+                          className="touch-target mt-4 w-full rounded-2xl bg-emerald-600 py-2.5 text-sm font-extrabold text-white hover:bg-emerald-700"
+                        >
+                          ✅ Marcar premio como entregado
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="mt-4 text-sm text-slate-600">
+                      Todavía no hay una meta activa para {selectedStudent.nickname}. Crea una en el
+                      formulario de la derecha.
+                    </p>
+                  )}
+
+                  {redeemedGoals.length > 0 && (
+                    <div className="mt-6">
+                      <h3 className="text-sm font-extrabold text-slate-700">
+                        Premios ya entregados ({redeemedGoals.length})
+                      </h3>
+                      <div className="mt-2 space-y-2">
+                        {redeemedGoals.map((g) => (
+                          <div
+                            key={g.id}
+                            className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs"
+                          >
+                            <span className="font-bold text-slate-800">🎁 {g.title}</span>
+                            <span className="text-slate-500">
+                              {new Date(g.redeemedAt ?? g.createdAt).toLocaleDateString('es-ES')}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Create New Family Reward Goal */}
+                <form
+                  onSubmit={handleCreateRewardGoal}
+                  className="rounded-3xl border border-slate-200 bg-white p-5"
+                >
+                  <h2 className="flex items-center gap-2 text-lg font-extrabold text-slate-900">
+                    <Gift className="h-5 w-5 text-amber-600" /> Acordar nuevo Premio Familiar
+                  </h2>
+                  <p className="mt-1 text-xs text-slate-600">
+                    Sustituye cualquier meta activa pendiente. El contador empezará desde cero a
+                    partir del progreso actual del alumno.
+                  </p>
+
+                  <div className="mt-4 space-y-3">
+                    <div>
+                      <span className="mb-1.5 block text-xs font-bold text-slate-600">
+                        Ideas rápidas:
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {REWARD_PRESETS.map((preset) => (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => setRewardTitle(preset)}
+                            className="rounded-xl border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-900 hover:bg-amber-100"
+                          >
+                            {preset}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-xs font-bold text-slate-700">
+                        Premio acordado
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        maxLength={120}
+                        value={rewardTitle}
+                        onChange={(e) => setRewardTitle(e.target.value)}
+                        placeholder="Ej: Elegir la película del viernes"
+                        className="touch-target w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="mb-1 block text-xs font-bold text-slate-700">
+                          Objetivo medido en
+                        </label>
+                        <select
+                          value={rewardMetric}
+                          onChange={(e) => {
+                            const nextMetric = e.target.value as FamilyRewardMetric;
+                            setRewardMetric(nextMetric);
+                            setRewardTarget(nextMetric === 'stars' ? 10 : 5);
+                          }}
+                          className="touch-target w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
+                        >
+                          <option value="stars">Estrellas nuevas (★)</option>
+                          <option value="sessions">Sesiones completadas</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-bold text-slate-700">
+                          Cantidad objetivo
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={50}
+                          value={rewardTarget}
+                          onChange={(e) => setRewardTarget(Number(e.target.value))}
+                          className="touch-target w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="touch-target w-full rounded-2xl bg-amber-600 py-3 text-sm font-extrabold text-white hover:bg-amber-700"
+                    >
+                      Activar meta para {selectedStudent.nickname}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </section>
+          );
+        })()}
+
         {tab === 'students' && (
           <section className="grid gap-6 lg:grid-cols-2">
             <div className="rounded-3xl border border-slate-200 bg-white p-5">

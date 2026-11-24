@@ -3,6 +3,7 @@ import type {
   ActiveExamSession,
   AttemptRecord,
   CustomExam,
+  FamilyRewardGoal,
   StudentMistake,
   StudentProfile,
 } from '../domain/types';
@@ -23,6 +24,7 @@ export interface FamilyCacheSnapshot {
   exams: CustomExam[];
   attempts: AttemptRecord[];
   mistakes: StudentMistake[];
+  rewards?: FamilyRewardGoal[];
   updatedAt: string;
 }
 

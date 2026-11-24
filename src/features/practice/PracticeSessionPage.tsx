@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, RotateCcw, Star, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, RotateCcw, Star, Trophy, XCircle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import {
   getExerciseById,
@@ -8,6 +8,7 @@ import {
   getIrregularVerbExercises,
   getUnitById,
 } from '../../data/curriculum';
+import { calculateAttemptXp, toLocalDateKey } from '../../domain/rewardsEngine';
 import {
   advancePracticeQuestion,
   buildAttemptRecord,
@@ -38,6 +39,7 @@ export function PracticeSessionPage() {
   const [currentInput, setCurrentInput] = useState<string | Record<string, string>>('');
   const [title, setTitle] = useState('Sesión de práctica');
   const [saved, setSaved] = useState(false);
+  const [earnedXp, setEarnedXp] = useState<number | null>(null);
   const [showExitDialog, setShowExitDialog] = useState(false);
 
   const activeStudentId = activeStudent?.id;
@@ -126,6 +128,7 @@ export function PracticeSessionPage() {
         setSession(createPracticeSession(exercises, mode));
         setCurrentInput('');
         setSaved(false);
+        setEarnedXp(null);
       }
     }
 
@@ -175,7 +178,18 @@ export function PracticeSessionPage() {
         totalQuestions: session!.questions.length,
       });
 
+      const existingAttempts = await familyRepository.listAttempts(activeStudent!.id);
+      const todayKey = toLocalDateKey(new Date());
+      const targetGroup = unitId ?? session!.mode;
+      const sameDayRepeats = existingAttempts.filter(
+        (a) =>
+          a.status === 'completed' &&
+          toLocalDateKey(new Date(a.finishedAt)) === todayKey &&
+          (a.unitId ?? a.mode) === targetGroup,
+      ).length;
+
       await familyRepository.recordAttempt(attempt);
+      setEarnedXp(calculateAttemptXp(attempt, sameDayRepeats));
 
       const missed = answersDetail
         .filter((a) => !a.isCorrect)
@@ -270,6 +284,24 @@ export function PracticeSessionPage() {
     const correctCount = session.questions.filter((q) => q.evaluation?.isCorrect).length;
     const pct = Math.round((correctCount / session.questions.length) * 100);
     const stars = pct >= 90 ? 3 : pct >= 70 ? 2 : pct >= 50 ? 1 : 0;
+    const displayXp =
+      earnedXp ??
+      calculateAttemptXp({
+        id: 'preview',
+        familyId: activeStudent.familyId,
+        studentId: activeStudent.id,
+        mode: session.mode,
+        unitId: unitId ?? null,
+        status: 'completed',
+        totalQuestions: session.questions.length,
+        correctCount,
+        scorePercent: pct,
+        stars: stars as 0 | 1 | 2 | 3,
+        startedAt: session.startedAt,
+        finishedAt: session.startedAt,
+        durationSeconds: 0,
+        answersDetail: [],
+      });
 
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-blue-50 to-slate-100 p-4">
@@ -291,6 +323,10 @@ export function PracticeSessionPage() {
           </p>
           <p className="mt-1 text-sm font-bold text-slate-600">{pct}% de aciertos</p>
 
+          <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3.5 py-1 text-sm font-black text-amber-800">
+            ⚡ +{displayXp} XP de Explorador
+          </div>
+
           <div className="mt-6 flex flex-col gap-2.5">
             <button
               type="button"
@@ -303,10 +339,18 @@ export function PracticeSessionPage() {
                 );
                 setCurrentInput('');
                 setSaved(false);
+                setEarnedXp(null);
               }}
               className="touch-target inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-700 py-3 font-bold text-white hover:bg-blue-800"
             >
               <RotateCcw className="h-4 w-4" /> Repetir (orden nuevo)
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/rewards')}
+              className="btn-duo btn-duo-amber inline-flex w-full items-center justify-center gap-2 py-2.5 text-sm"
+            >
+              <Trophy className="h-4 w-4" /> Ver mi Pasaporte y Premios
             </button>
             <button
               type="button"

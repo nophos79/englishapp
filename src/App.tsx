@@ -8,6 +8,7 @@ import { ParentDashboardPage } from './features/parent/ParentDashboardPage';
 import { ExamRunnerPage } from './features/practice/ExamRunnerPage';
 import { PracticeSessionPage } from './features/practice/PracticeSessionPage';
 import { ProfileSelectorPage } from './features/profiles/ProfileSelectorPage';
+import { StudentRewardsPage } from './features/student/StudentRewardsPage';
 import { StudentRoadmapPage } from './features/student/StudentRoadmapPage';
 
 function AppRoutes() {
@@ -40,6 +41,7 @@ function AppRoutes() {
         element={parentUnlocked ? <ParentDashboardPage /> : <Navigate to="/parent-pin" replace />}
       />
       <Route path="/student" element={<StudentRoadmapPage />} />
+      <Route path="/rewards" element={<StudentRewardsPage />} />
       <Route path="/practice/:unitId" element={<PracticeSessionPage />} />
       <Route path="/exam/:examId" element={<ExamRunnerPage />} />
       <Route path="/banks" element={<ReferenceBanksPage />} />

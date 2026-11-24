@@ -168,3 +168,20 @@ export interface ActiveExamSession {
   focusLossCount?: number;
   focusLossSeconds?: number;
 }
+
+export type FamilyRewardMetric = 'stars' | 'sessions';
+export type FamilyRewardStatus = 'active' | 'claimed' | 'redeemed';
+
+export interface FamilyRewardGoal {
+  id: string;
+  familyId: string;
+  studentId: string;
+  title: string;
+  metric: FamilyRewardMetric;
+  targetValue: number;
+  baselineValue: number;
+  status: FamilyRewardStatus;
+  createdAt: string;
+  claimedAt?: string | null;
+  redeemedAt?: string | null;
+}

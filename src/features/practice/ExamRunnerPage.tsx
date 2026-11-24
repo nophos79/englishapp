@@ -5,6 +5,7 @@ import { useApp } from '../../context/AppContext';
 import { getExerciseById } from '../../data/curriculum';
 import { evaluateAnswer } from '../../domain/answerEvaluator';
 import { shuffleArray } from '../../domain/randomizer';
+import { calculateAttemptXp } from '../../domain/rewardsEngine';
 import { buildAttemptRecord } from '../../domain/sessionMachine';
 import type { ActiveExamSession, AnswerDetail, AttemptRecord, CustomExam, ExerciseItem } from '../../domain/types';
 import { familyRepository, generateUuid } from '../../services/familyRepository';
@@ -223,6 +224,9 @@ export function ExamRunnerPage() {
             <p className="text-sm font-bold text-slate-600">
               {submittedAttempt.correctCount} de {submittedAttempt.totalQuestions} aciertos · Intento cerrado
             </p>
+            <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3.5 py-1 text-sm font-black text-amber-800">
+              ⚡ +{calculateAttemptXp(submittedAttempt, 0)} XP de Explorador
+            </div>
           </div>
 
           <div className="mt-6 space-y-2.5">

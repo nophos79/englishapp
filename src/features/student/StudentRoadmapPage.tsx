@@ -1,19 +1,37 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
+  Award,
   BookMarked,
   ClipboardCheck,
+  Gift,
   Lock,
   Play,
   RefreshCcw,
   Star,
   Trophy,
 } from 'lucide-react';
-import { getAvatar } from '../../components/ui/Avatars';
+import {
+  getAvatar,
+  getStoredStudentThemeId,
+  getStudentTheme,
+} from '../../components/ui/Avatars';
 import { useApp } from '../../context/AppContext';
-import { COURSES, getCourse, getOrderedUnitsForCourse } from '../../data/curriculum';
-import type { AttemptRecord, CourseId, CustomExam, ExerciseItem } from '../../domain/types';
+import {
+  COURSES,
+  getCourse,
+  getExerciseById,
+  getOrderedUnitsForCourse,
+} from '../../data/curriculum';
+import { computeFamilyGoalProgress, computeStudentRewards } from '../../domain/rewardsEngine';
+import type {
+  AttemptRecord,
+  CourseId,
+  CustomExam,
+  ExerciseItem,
+  FamilyRewardGoal,
+} from '../../domain/types';
 import { familyRepository } from '../../services/familyRepository';
 
 const VALID_COURSE_IDS: readonly CourseId[] = ['3p', '4p', '5p', '6p'];
@@ -72,6 +90,7 @@ export function StudentRoadmapPage() {
   const [unitAccess, setUnitAccess] = useState<Record<string, boolean>>({});
   const [exams, setExams] = useState<CustomExam[]>([]);
   const [attempts, setAttempts] = useState<AttemptRecord[]>([]);
+  const [familyRewards, setFamilyRewards] = useState<FamilyRewardGoal[]>([]);
   const [pendingMistakes, setPendingMistakes] = useState(0);
   const scrolledUnitRef = useRef<string | null>(null);
 
@@ -138,17 +157,19 @@ export function StudentRoadmapPage() {
     let cancelled = false;
     async function load() {
       await familyRepository.refreshFromRemote();
-      const [access, examList, attemptList, mistakes] = await Promise.all([
+      const [access, examList, attemptList, mistakes, rewardList] = await Promise.all([
         familyRepository.getUnitAccess(activeStudentId!),
         familyRepository.listExams(activeStudentId!),
         familyRepository.listAttempts(activeStudentId!),
         familyRepository.listPendingMistakes(activeStudentId!),
+        familyRepository.listFamilyRewards(activeStudentId!),
       ]);
       if (!cancelled) {
         setUnitAccess(access);
         setExams(examList.filter((e) => e.status === 'pending' || e.status === 'in_progress'));
         setAttempts(attemptList);
         setPendingMistakes(mistakes.length);
+        setFamilyRewards(rewardList);
       }
     }
     void load();
@@ -157,11 +178,23 @@ export function StudentRoadmapPage() {
     };
   }, [activeStudentId, navigate]);
 
+  const studentRewards = useMemo(
+    () => computeStudentRewards(attempts, { lookupExercise: getExerciseById }),
+    [attempts],
+  );
+
   if (!activeStudent) return null;
 
   const avatar = getAvatar(activeStudent.avatarId);
+  const activeTheme = getStudentTheme(getStoredStudentThemeId(activeStudent.id));
   const defaultCourse = getCourse(activeStudent.courseId);
   const course = getCourse(selectedCourseId);
+  const activeFamilyGoal = familyRewards.find(
+    (g) => g.status === 'active' || g.status === 'claimed',
+  );
+  const activeGoalProgress = activeFamilyGoal
+    ? computeFamilyGoalProgress(activeFamilyGoal, studentRewards)
+    : null;
 
   const getBestStarsForUnit = (unitId: string) => {
     const unitAttempts = attempts.filter((a) => a.unitId === unitId && a.status === 'completed');
@@ -174,7 +207,7 @@ export function StudentRoadmapPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-emerald-50/40 pb-12">
+    <div className={`min-h-screen bg-gradient-to-b ${activeTheme.bgClass} pb-12`}>
       <header className="sticky top-0 z-10 border-b-2 border-sky-100 bg-white/95 backdrop-blur">
         <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3 px-4 py-3.5">
           <div className="flex items-center gap-3">
@@ -257,6 +290,112 @@ export function StudentRoadmapPage() {
             </div>
           </section>
         )}
+
+        {/* Explorer Passport & Rewards Strip */}
+        <section className="mb-5 rounded-3xl border-2 border-amber-200 bg-white/95 p-4 shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-2xl">
+                {studentRewards.rank.emoji}
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-black text-slate-900">
+                    Nv.{studentRewards.rank.level} · {studentRewards.rank.title}
+                  </span>
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-black text-amber-800">
+                    ⚡ {studentRewards.totalXp} XP
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-black text-emerald-800">
+                    <Award className="h-3 w-3" /> {studentRewards.earnedBadgesCount}/
+                    {studentRewards.totalBadgesCount} sellos
+                  </span>
+                </div>
+                <div className="mt-1.5 flex flex-wrap items-center gap-2.5">
+                  <div className="h-2 w-28 overflow-hidden rounded-full bg-slate-200 sm:w-36">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-500"
+                      style={{ width: `${studentRewards.rankProgressPercent}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center gap-1" aria-label="Meta semanal">
+                    {studentRewards.weekDaysStatus.map((d) => (
+                      <span
+                        key={d.dateKey}
+                        title={d.dateKey}
+                        className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black ${
+                          d.practiced
+                            ? 'bg-emerald-500 text-white'
+                            : d.isToday
+                              ? 'border border-sky-400 bg-sky-50 text-sky-700'
+                              : 'bg-slate-100 text-slate-400'
+                        }`}
+                      >
+                        {d.label}
+                      </span>
+                    ))}
+                    <span className="ml-1 text-[11px] font-bold text-slate-500">
+                      {studentRewards.weeklyDaysPracticed}/{studentRewards.weeklyTargetDays} días
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              disabled={Boolean(activeExamId)}
+              onClick={() => navigate('/rewards')}
+              className="btn-duo btn-duo-amber inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm disabled:opacity-40"
+            >
+              <Trophy className="h-4 w-4" /> Mi Pasaporte y Premios
+            </button>
+          </div>
+
+          {activeFamilyGoal && activeGoalProgress && (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-amber-200 bg-amber-50/70 px-3.5 py-2.5">
+              <div className="min-w-0 flex-1">
+                <p className="flex items-center gap-1.5 text-xs font-black text-amber-950">
+                  <Gift className="h-4 w-4 shrink-0 text-amber-600" />
+                  <span className="truncate">Premio Familiar: {activeFamilyGoal.title}</span>
+                  <span className="ml-auto shrink-0 text-amber-800">
+                    {activeGoalProgress.current}/{activeGoalProgress.target}{' '}
+                    {activeFamilyGoal.metric === 'stars' ? '★' : 'ses.'}
+                  </span>
+                </p>
+                <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-amber-100">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-amber-400 to-emerald-500"
+                    style={{ width: `${activeGoalProgress.percent}%` }}
+                  />
+                </div>
+              </div>
+              {activeFamilyGoal.status === 'active' && activeGoalProgress.reached && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await familyRepository.claimFamilyReward(activeFamilyGoal.id);
+                    const updated = await familyRepository.listFamilyRewards(activeStudent.id);
+                    setFamilyRewards(updated);
+                    navigate('/rewards?tab=family');
+                  }}
+                  className="btn-duo btn-duo-green px-3 py-1.5 text-xs"
+                >
+                  🎉 ¡Reclamar premio!
+                </button>
+              )}
+              {activeFamilyGoal.status === 'claimed' && (
+                <button
+                  type="button"
+                  onClick={() => navigate('/rewards?tab=family')}
+                  className="rounded-xl bg-emerald-100 px-3 py-1.5 text-xs font-black text-emerald-800"
+                >
+                  🎁 ¡Reclamado! Ver estado
+                </button>
+              )}
+            </div>
+          )}
+        </section>
 
         {/* Course Selector for Multi-Course Review */}
         <section className="mb-6">

@@ -3,10 +3,24 @@ import type {
   CourseId,
   CustomExam,
   ExamStatus,
+  FamilyRewardGoal,
+  FamilyRewardMetric,
+  FamilyRewardStatus,
   SkillFocus,
   StudentMistake,
   StudentProfile,
 } from '../domain/types';
+
+function isMissingTableError(error: { code?: string; message?: string } | null | undefined): boolean {
+  if (!error) return false;
+  const msg = (error.message ?? '').toLowerCase();
+  return (
+    error.code === '42P01' ||
+    error.code === 'PGRST205' ||
+    msg.includes('does not exist') ||
+    msg.includes('could not find the table')
+  );
+}
 import {
   enqueueSyncItem,
   listSyncOutbox,
@@ -118,6 +132,7 @@ async function ensureSnapshot(): Promise<FamilyCacheSnapshot> {
     exams: [],
     attempts: [],
     mistakes: [],
+    rewards: [],
     updatedAt: new Date().toISOString(),
   };
   await writeFamilySnapshot(fresh);
@@ -138,13 +153,15 @@ export const familyRepository = {
     // Push pending offline items first so remote reflects latest attempts
     await this.flushSyncOutbox();
 
-    const [studentsRes, accessRes, examsRes, attemptsRes, mistakesRes] = await Promise.all([
-      supabase.from('student_profiles').select('*').order('created_at', { ascending: true }),
-      supabase.from('student_unit_access').select('*'),
-      supabase.from('custom_exams').select('*').order('created_at', { ascending: false }),
-      supabase.from('attempt_records').select('*').order('finished_at', { ascending: false }),
-      supabase.from('student_mistakes').select('*'),
-    ]);
+    const [studentsRes, accessRes, examsRes, attemptsRes, mistakesRes, rewardsRes] =
+      await Promise.all([
+        supabase.from('student_profiles').select('*').order('created_at', { ascending: true }),
+        supabase.from('student_unit_access').select('*'),
+        supabase.from('custom_exams').select('*').order('created_at', { ascending: false }),
+        supabase.from('attempt_records').select('*').order('finished_at', { ascending: false }),
+        supabase.from('student_mistakes').select('*'),
+        supabase.from('family_rewards').select('*').order('created_at', { ascending: false }),
+      ]);
 
     const students: StudentProfile[] = (studentsRes.data ?? []).map((row) => ({
       id: row.id,
@@ -208,6 +225,25 @@ export const familyRepository = {
       resolvedAt: row.resolved_at,
     }));
 
+    const rewards: FamilyRewardGoal[] =
+      !rewardsRes.error && rewardsRes.data
+        ? rewardsRes.data.map((row) => ({
+            id: row.id,
+            familyId: row.family_id,
+            studentId: row.student_id,
+            title: row.title,
+            metric: row.metric as FamilyRewardMetric,
+            targetValue: row.target_value,
+            baselineValue: row.baseline_value ?? 0,
+            status: row.status as FamilyRewardStatus,
+            createdAt: row.created_at,
+            claimedAt: row.claimed_at,
+            redeemedAt: row.redeemed_at,
+          }))
+        : isMissingTableError(rewardsRes.error)
+          ? (snap.rewards ?? [])
+          : (snap.rewards ?? []);
+
     const nextSnap: FamilyCacheSnapshot = {
       key: 'snapshot',
       familyId,
@@ -217,6 +253,7 @@ export const familyRepository = {
       exams,
       attempts,
       mistakes,
+      rewards,
       updatedAt: new Date().toISOString(),
     };
     await writeFamilySnapshot(nextSnap);
@@ -325,6 +362,144 @@ export const familyRepository = {
     snap.students = snap.students.map((s) => (s.id === studentId ? { ...s, courseId } : s));
     snap.updatedAt = new Date().toISOString();
     await writeFamilySnapshot(snap);
+  },
+
+  async updateStudentAvatar(studentId: string, avatarId: string): Promise<void> {
+    const snap = await ensureSnapshot();
+    if (isSupabaseConfigured && supabase && isOnline()) {
+      const { error } = await supabase
+        .from('student_profiles')
+        .update({ avatar_id: avatarId })
+        .eq('id', studentId);
+      if (error) throw new Error(error.message);
+    }
+    snap.students = snap.students.map((s) => (s.id === studentId ? { ...s, avatarId } : s));
+    snap.updatedAt = new Date().toISOString();
+    await writeFamilySnapshot(snap);
+  },
+
+  async listFamilyRewards(studentId: string): Promise<FamilyRewardGoal[]> {
+    const snap = await ensureSnapshot();
+    return (snap.rewards ?? []).filter((r) => r.studentId === studentId);
+  },
+
+  async createFamilyReward(input: {
+    studentId: string;
+    title: string;
+    metric: FamilyRewardMetric;
+    targetValue: number;
+    baselineValue: number;
+  }): Promise<FamilyRewardGoal> {
+    const snap = await ensureSnapshot();
+    const reward: FamilyRewardGoal = {
+      id: generateUuid(),
+      familyId: snap.familyId,
+      studentId: input.studentId,
+      title: input.title.trim(),
+      metric: input.metric,
+      targetValue: Math.max(1, Math.min(200, Math.round(input.targetValue))),
+      baselineValue: Math.max(0, Math.round(input.baselineValue)),
+      status: 'active',
+      createdAt: new Date().toISOString(),
+      claimedAt: null,
+      redeemedAt: null,
+    };
+
+    if (isSupabaseConfigured && supabase && isOnline()) {
+      const { error: delErr } = await supabase
+        .from('family_rewards')
+        .delete()
+        .eq('student_id', input.studentId)
+        .neq('status', 'redeemed');
+      if (delErr && !isMissingTableError(delErr)) {
+        throw new Error(delErr.message);
+      }
+
+      const { data, error } = await supabase
+        .from('family_rewards')
+        .insert({
+          id: reward.id,
+          family_id: reward.familyId,
+          student_id: reward.studentId,
+          title: reward.title,
+          metric: reward.metric,
+          target_value: reward.targetValue,
+          baseline_value: reward.baselineValue,
+          status: reward.status,
+        })
+        .select('*')
+        .single();
+      if (error) {
+        if (!isMissingTableError(error)) {
+          throw new Error(error.message);
+        }
+      } else if (data) {
+        reward.id = data.id;
+        reward.createdAt = data.created_at;
+      }
+    }
+
+    const existing = (snap.rewards ?? []).filter(
+      (r) => !(r.studentId === input.studentId && r.status !== 'redeemed'),
+    );
+    snap.rewards = [reward, ...existing];
+    snap.updatedAt = new Date().toISOString();
+    await writeFamilySnapshot(snap);
+    return reward;
+  },
+
+  async claimFamilyReward(rewardId: string): Promise<void> {
+    const snap = await ensureSnapshot();
+    const now = new Date().toISOString();
+    snap.rewards = (snap.rewards ?? []).map((r) =>
+      r.id === rewardId ? { ...r, status: 'claimed', claimedAt: now } : r,
+    );
+    snap.updatedAt = now;
+    await writeFamilySnapshot(snap);
+
+    if (isSupabaseConfigured && supabase && isOnline()) {
+      const { error } = await supabase
+        .from('family_rewards')
+        .update({ status: 'claimed', claimed_at: now })
+        .eq('id', rewardId);
+      if (error && !isMissingTableError(error)) {
+        throw new Error(error.message);
+      }
+    }
+  },
+
+  async redeemFamilyReward(rewardId: string): Promise<void> {
+    const snap = await ensureSnapshot();
+    const now = new Date().toISOString();
+    snap.rewards = (snap.rewards ?? []).map((r) =>
+      r.id === rewardId ? { ...r, status: 'redeemed', redeemedAt: now } : r,
+    );
+    snap.updatedAt = now;
+    await writeFamilySnapshot(snap);
+
+    if (isSupabaseConfigured && supabase && isOnline()) {
+      const { error } = await supabase
+        .from('family_rewards')
+        .update({ status: 'redeemed', redeemed_at: now })
+        .eq('id', rewardId);
+      if (error && !isMissingTableError(error)) {
+        throw new Error(error.message);
+      }
+    }
+  },
+
+  async deleteFamilyReward(rewardId: string): Promise<void> {
+    const snap = await ensureSnapshot();
+    snap.rewards = (snap.rewards ?? []).filter((r) => r.id !== rewardId);
+    snap.updatedAt = new Date().toISOString();
+    await writeFamilySnapshot(snap);
+
+    if (isSupabaseConfigured && supabase && isOnline()) {
+      const { error } = await supabase.from('family_rewards').delete().eq('id', rewardId);
+      if (error && !isMissingTableError(error)) {
+        throw new Error(error.message);
+      }
+    }
   },
 
   async getUnitAccess(studentId: string): Promise<Record<string, boolean>> {
@@ -600,6 +775,7 @@ export const familyRepository = {
     snap.attempts = snap.attempts.filter((a) => a.studentId !== studentId);
     snap.mistakes = snap.mistakes.filter((m) => m.studentId !== studentId);
     snap.exams = snap.exams.filter((e) => e.studentId !== studentId);
+    snap.rewards = (snap.rewards ?? []).filter((r) => r.studentId !== studentId);
     snap.updatedAt = new Date().toISOString();
     await writeFamilySnapshot(snap);
   },
@@ -622,6 +798,7 @@ export const familyRepository = {
     snap.attempts = snap.attempts.filter((a) => a.studentId !== studentId);
     snap.mistakes = snap.mistakes.filter((m) => m.studentId !== studentId);
     snap.exams = snap.exams.filter((e) => e.studentId !== studentId);
+    snap.rewards = (snap.rewards ?? []).filter((r) => r.studentId !== studentId);
     snap.updatedAt = new Date().toISOString();
     await writeFamilySnapshot(snap);
   },
