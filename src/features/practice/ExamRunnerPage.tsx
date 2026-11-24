@@ -57,15 +57,17 @@ export function ExamRunnerPage() {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [submittedAttempt]);
 
+  const activeStudentId = activeStudent?.id;
+
   useEffect(() => {
-    if (!activeStudent || !examId) {
+    if (!activeStudentId || !examId) {
       navigate('/');
       return;
     }
 
     let cancelled = false;
     async function initExam() {
-      const exams = await familyRepository.listExams(activeStudent!.id);
+      const exams = await familyRepository.listExams(activeStudentId!);
       const target = exams.find((e) => e.id === examId);
       if (!target || target.status === 'completed' || target.status === 'abandoned') {
         navigate('/student');
@@ -83,7 +85,7 @@ export function ExamRunnerPage() {
         }
         activeSess = {
           examId: target.id,
-          studentId: activeStudent!.id,
+          studentId: activeStudentId!,
           startedAt: new Date().toISOString(),
           currentIndex: 0,
           exerciseIds: target.exerciseIds,
@@ -105,7 +107,7 @@ export function ExamRunnerPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeStudent, examId, navigate, setActiveExamId]);
+  }, [activeStudentId, examId, navigate, setActiveExamId]);
 
   const exercises = useMemo(() => {
     if (!session) return [];

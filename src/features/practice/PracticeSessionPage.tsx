@@ -32,8 +32,10 @@ export function PracticeSessionPage() {
   const [title, setTitle] = useState('Sesión de práctica');
   const [saved, setSaved] = useState(false);
 
+  const activeStudentId = activeStudent?.id;
+
   useEffect(() => {
-    if (!activeStudent) {
+    if (!activeStudentId) {
       navigate('/');
       return;
     }
@@ -44,7 +46,7 @@ export function PracticeSessionPage() {
       let sessionTitle = 'Sesión de práctica';
 
       if (mode === 'mistake_review') {
-        const pending = await familyRepository.listPendingMistakes(activeStudent!.id);
+        const pending = await familyRepository.listPendingMistakes(activeStudentId!);
         exercises = pending
           .map((m) => getExerciseById(m.exerciseId))
           .filter((e): e is ExerciseItem => Boolean(e));
@@ -56,7 +58,7 @@ export function PracticeSessionPage() {
         exercises = getExpressionExercises().slice(0, 10);
         sessionTitle = 'Práctica: Expresiones Útiles';
       } else if (unitId) {
-        const access = await familyRepository.getUnitAccess(activeStudent!.id);
+        const access = await familyRepository.getUnitAccess(activeStudentId!);
         if (!access[unitId]) {
           navigate('/student');
           return;
@@ -80,7 +82,7 @@ export function PracticeSessionPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeStudent, unitId, mode, navigate]);
+  }, [activeStudentId, unitId, mode, navigate]);
 
   const currentQuestion = session?.questions[session.currentIndex];
 
