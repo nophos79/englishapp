@@ -27,7 +27,7 @@ describe('Curriculum Catalog & Reference Banks (Zod Validation)', () => {
     }
   });
 
-  it('has globally unique exercise IDs and includes all 7 interactive exercise types', () => {
+  it('has globally unique exercise IDs and includes all 9 interactive exercise types', () => {
     const all = COURSES.flatMap((c) =>
       c.terms.flatMap((t) => t.units.flatMap((u) => u.exercises)),
     );
@@ -42,6 +42,8 @@ describe('Curriculum Catalog & Reference Banks (Zod Validation)', () => {
     expect(typesPresent).toContain('word_builder');
     expect(typesPresent).toContain('odd_one_out');
     expect(typesPresent).toContain('true_false');
+    expect(typesPresent).toContain('listening_choice');
+    expect(typesPresent).toContain('listening_dictation');
   });
 
   it('validates irregular verbs, expressions, and wordlist banks', () => {

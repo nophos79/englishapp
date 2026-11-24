@@ -12,6 +12,8 @@ export const exerciseTypeSchema = z.enum([
   'word_builder',
   'odd_one_out',
   'true_false',
+  'listening_choice',
+  'listening_dictation',
 ]);
 
 export const matchingPairSchema = z.object({
@@ -28,6 +30,7 @@ export const exerciseItemSchema = z
     type: exerciseTypeSchema,
     promptEs: z.string().min(3),
     promptEn: z.string().min(1).optional(),
+    audioText: z.string().min(1).optional(),
     options: z.array(z.string().min(1)).min(2).optional(),
     pairs: z.array(matchingPairSchema).min(3).max(5).optional(),
     tokens: z.array(z.string().min(1)).min(3).optional(),
@@ -36,7 +39,11 @@ export const exerciseItemSchema = z
     allowAudioInExam: z.boolean(),
   })
   .superRefine((item, ctx) => {
-    if (item.type === 'multiple_choice' || item.type === 'odd_one_out') {
+    if (
+      item.type === 'multiple_choice' ||
+      item.type === 'odd_one_out' ||
+      item.type === 'listening_choice'
+    ) {
       if (!item.options || item.options.length < 3) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -50,6 +57,16 @@ export const exerciseItemSchema = z
           path: ['acceptedAnswers'],
         });
       }
+    }
+    if (
+      (item.type === 'listening_choice' || item.type === 'listening_dictation') &&
+      (!item.audioText || item.audioText.trim().length === 0)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `${item.type} requires non-empty audioText`,
+        path: ['audioText'],
+      });
     }
     if (item.type === 'true_false') {
       if (!item.options || item.options.length !== 2) {

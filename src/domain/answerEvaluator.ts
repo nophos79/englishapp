@@ -15,6 +15,10 @@ export function normalizeText(input: string): string {
     .toLowerCase();
 }
 
+function normalizeDictation(input: string): string {
+  return normalizeText(input).replace(/[.,?!¡¿;:"]/g, '').replace(/\s+/g, ' ').trim();
+}
+
 export function evaluateAnswer(
   item: ExerciseItem,
   submitted: string | Record<string, string>,
@@ -46,8 +50,9 @@ export function evaluateAnswer(
   }
 
   const rawText = typeof submitted === 'string' ? submitted : '';
-  const normalizedSubmitted = normalizeText(rawText);
-  const normalizedAccepted = item.acceptedAnswers.map(normalizeText);
+  const normalizer = item.type === 'listening_dictation' ? normalizeDictation : normalizeText;
+  const normalizedSubmitted = normalizer(rawText);
+  const normalizedAccepted = item.acceptedAnswers.map(normalizer);
   const isCorrect = normalizedSubmitted.length > 0 && normalizedAccepted.includes(normalizedSubmitted);
 
   return {

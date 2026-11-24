@@ -348,7 +348,9 @@ export function ExamRunnerPage() {
           <ExerciseRenderer
             exercise={currentExercise}
             shuffledOptions={
-              currentExercise.type === 'multiple_choice' || currentExercise.type === 'odd_one_out'
+              currentExercise.type === 'multiple_choice' ||
+              currentExercise.type === 'odd_one_out' ||
+              currentExercise.type === 'listening_choice'
                 ? session.optionOrderByExercise[currentExercise.id]
                 : undefined
             }

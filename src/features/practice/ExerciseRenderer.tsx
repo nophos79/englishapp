@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Check, Puzzle, RotateCcw, Search, X } from 'lucide-react';
+import { Check, Puzzle, RotateCcw, Search, Snail, Volume2, X } from 'lucide-react';
 import { SpeakButton } from '../../components/ui/SpeakButton';
 import type { ExerciseItem } from '../../domain/types';
+import { speechService } from '../../services/speechService';
 
 interface ExerciseRendererProps {
   exercise: ExerciseItem;
@@ -22,6 +23,8 @@ const TYPE_BADGES: Record<ExerciseItem['type'], string> = {
   word_builder: 'Forma palabras',
   odd_one_out: 'Encuentra el intruso',
   true_false: '¿Correcta o con fallo?',
+  listening_choice: 'Listening · Escucha y elige',
+  listening_dictation: 'Listening · Dictado',
 };
 
 export function ExerciseRenderer({
@@ -43,6 +46,21 @@ export function ExerciseRenderer({
   useEffect(() => {
     setSelectedIndices([]);
   }, [exercise.id]);
+
+  // Auto-play audio once when a Listening exercise opens
+  const isListening =
+    exercise.type === 'listening_choice' || exercise.type === 'listening_dictation';
+
+  useEffect(() => {
+    if (isListening && exercise.audioText && !disabled) {
+      speechService.speakEnglish(exercise.audioText);
+    }
+    return () => {
+      if (isListening) {
+        speechService.stop();
+      }
+    };
+  }, [exercise.id, exercise.audioText, isListening, disabled]);
 
   const handleSelectToken = (idx: number) => {
     if (disabled || selectedIndices.includes(idx)) return;
@@ -90,10 +108,49 @@ export function ExerciseRenderer({
             {showAudio && <SpeakButton text={exercise.promptEn.replace(/___/g, '')} compact />}
           </div>
         )}
+
+        {/* LISTENING AUDIO CONTROLS (Duolingo normal + slow turtle buttons) */}
+        {isListening && exercise.audioText && (
+          <div className="mt-4 rounded-3xl border-2 border-sky-200 bg-gradient-to-r from-sky-50 to-indigo-50 p-5 text-center">
+            {speechService.isSupported() ? (
+              <>
+                <p className="mb-3 text-xs font-extrabold uppercase tracking-wide text-sky-800">
+                  Pulsa para escuchar tantas veces como necesites
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => speechService.speakEnglish(exercise.audioText!)}
+                    className="btn-duo btn-duo-blue inline-flex items-center gap-2.5 px-6 py-3.5 text-base"
+                  >
+                    <Volume2 className="h-6 w-6" />
+                    Escuchar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => speechService.speakEnglishSlow(exercise.audioText!)}
+                    title="Escuchar despacio"
+                    className="btn-duo btn-duo-white inline-flex items-center gap-2 px-4 py-3.5 text-sm font-black text-sky-800 hover:border-sky-400"
+                  >
+                    <Snail className="h-5 w-5 text-sky-600" />
+                    Despacio
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="space-y-1 text-sm text-slate-700">
+                <p className="font-bold text-amber-800">
+                  Tu navegador no tiene síntesis de voz activa. Transcripción de respaldo:
+                </p>
+                <p className="text-lg font-black text-sky-950">"{exercise.audioText}"</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* 1. MULTIPLE CHOICE */}
-      {exercise.type === 'multiple_choice' && (
+      {/* 1. MULTIPLE CHOICE & LISTENING CHOICE */}
+      {(exercise.type === 'multiple_choice' || exercise.type === 'listening_choice') && (
         <div className="grid gap-3">
           {(shuffledOptions ?? exercise.options ?? []).map((option, idx) => {
             const selected = value === option;
@@ -124,11 +181,13 @@ export function ExerciseRenderer({
         </div>
       )}
 
-      {/* 2. FILL BLANK */}
-      {exercise.type === 'fill_blank' && (
+      {/* 2. FILL BLANK & LISTENING DICTATION */}
+      {(exercise.type === 'fill_blank' || exercise.type === 'listening_dictation') && (
         <div>
           <label htmlFor={`answer-${exercise.id}`} className="mb-1 block text-xs font-bold text-slate-500">
-            Escribe tu respuesta en inglés:
+            {exercise.type === 'listening_dictation'
+              ? 'Escribe en inglés exactamente lo que escuchas:'
+              : 'Escribe tu respuesta en inglés:'}
           </label>
           <input
             id={`answer-${exercise.id}`}

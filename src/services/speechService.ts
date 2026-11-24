@@ -1,6 +1,7 @@
 export interface SpeechService {
   isSupported(): boolean;
-  speakEnglish(text: string): boolean;
+  speakEnglish(text: string, rate?: number): boolean;
+  speakEnglishSlow(text: string): boolean;
   stop(): void;
 }
 
@@ -22,7 +23,7 @@ export const speechService: SpeechService = {
     );
   },
 
-  speakEnglish(text: string): boolean {
+  speakEnglish(text: string, rate = 0.92): boolean {
     if (!this.isSupported() || !text.trim()) return false;
     try {
       window.speechSynthesis.cancel();
@@ -35,12 +36,16 @@ export const speechService: SpeechService = {
       } else {
         utterance.lang = 'en-GB';
       }
-      utterance.rate = 0.92;
+      utterance.rate = rate;
       window.speechSynthesis.speak(utterance);
       return true;
     } catch {
       return false;
     }
+  },
+
+  speakEnglishSlow(text: string): boolean {
+    return this.speakEnglish(text, 0.62);
   },
 
   stop(): void {

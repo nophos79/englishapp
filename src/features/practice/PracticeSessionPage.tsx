@@ -26,6 +26,7 @@ export function PracticeSessionPage() {
   const navigate = useNavigate();
 
   const mode = (searchParams.get('mode') as AttemptMode) || 'practice';
+  const focus = searchParams.get('focus') as 'vocabulary' | 'grammar' | null;
 
   const [session, setSession] = useState<PracticeSessionState | null>(null);
   const [currentInput, setCurrentInput] = useState<string | Record<string, string>>('');
@@ -65,8 +66,20 @@ export function PracticeSessionPage() {
         }
         const unit = getUnitById(unitId);
         if (unit) {
-          exercises = unit.exercises;
-          sessionTitle = `${unit.code}: ${unit.title}`;
+          if (focus === 'vocabulary') {
+            exercises = unit.exercises.filter(
+              (e) => e.skill === 'vocabulary' || e.skill === 'expressions',
+            );
+            sessionTitle = `${unit.code}: ${unit.title} · Vocabulario`;
+          } else if (focus === 'grammar') {
+            exercises = unit.exercises.filter(
+              (e) => e.skill === 'grammar' || e.skill === 'irregular_verbs',
+            );
+            sessionTitle = `${unit.code}: ${unit.title} · Gramática`;
+          } else {
+            exercises = unit.exercises;
+            sessionTitle = `${unit.code}: ${unit.title} · Completo`;
+          }
         }
       }
 
@@ -82,7 +95,7 @@ export function PracticeSessionPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeStudentId, unitId, mode, navigate]);
+  }, [activeStudentId, unitId, mode, focus, navigate]);
 
   const currentQuestion = session?.questions[session.currentIndex];
 
@@ -297,6 +310,11 @@ export function PracticeSessionPage() {
                 )}
               </div>
               <p className="mt-1.5 text-sm font-semibold">{currentQuestion.evaluation.explanationEs}</p>
+              {currentQuestion.exercise.audioText && (
+                <p className="mt-1 text-xs font-extrabold opacity-80">
+                  Audio en inglés: "{currentQuestion.exercise.audioText}"
+                </p>
+              )}
             </div>
           )}
 

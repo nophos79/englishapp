@@ -291,15 +291,44 @@ export function StudentRoadmapPage() {
                           )}
                         </div>
 
-                        {enabled && (
-                          <button
-                            type="button"
-                            onClick={() => navigate(`/practice/${unit.id}`)}
-                            className={`btn-duo ${theme.btn} mt-4 inline-flex w-full items-center justify-center gap-2 py-2.5 text-sm`}
-                          >
-                            <Play className="h-4 w-4 fill-current" /> ¡Practicar! ({unit.exercises.length} ej.)
-                          </button>
-                        )}
+                        {enabled && (() => {
+                          const vocabCount = unit.exercises.filter(
+                            (e) => e.skill === 'vocabulary' || e.skill === 'expressions',
+                          ).length;
+                          const grammarCount = unit.exercises.filter(
+                            (e) => e.skill === 'grammar' || e.skill === 'irregular_verbs',
+                          ).length;
+
+                          return (
+                            <div className="mt-4 space-y-2">
+                              <div className="grid grid-cols-2 gap-2">
+                                <button
+                                  type="button"
+                                  disabled={vocabCount === 0}
+                                  onClick={() => navigate(`/practice/${unit.id}?focus=vocabulary`)}
+                                  className="btn-duo btn-duo-white px-2.5 py-2 text-xs font-black text-emerald-800 hover:border-emerald-400 disabled:opacity-40"
+                                >
+                                  📘 Vocabulario ({vocabCount})
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={grammarCount === 0}
+                                  onClick={() => navigate(`/practice/${unit.id}?focus=grammar`)}
+                                  className="btn-duo btn-duo-white px-2.5 py-2 text-xs font-black text-sky-800 hover:border-sky-400 disabled:opacity-40"
+                                >
+                                  🧩 Gramática ({grammarCount})
+                                </button>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => navigate(`/practice/${unit.id}`)}
+                                className={`btn-duo ${theme.btn} inline-flex w-full items-center justify-center gap-2 py-2.5 text-sm`}
+                              >
+                                <Play className="h-4 w-4 fill-current" /> Reto completo ({unit.exercises.length} ej.)
+                              </button>
+                            </div>
+                          );
+                        })()}
                       </div>
                     );
                   })}

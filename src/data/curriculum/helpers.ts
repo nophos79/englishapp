@@ -168,3 +168,53 @@ export function tf(
     allowAudioInExam: true,
   };
 }
+
+export function listenChoice(
+  id: string,
+  courseId: CourseId,
+  unitId: string,
+  skill: SkillArea,
+  promptEs: string,
+  audioText: string,
+  options: string[],
+  correct: string,
+  explanationEs: string,
+): ExerciseItem {
+  return {
+    id,
+    courseId,
+    unitId,
+    skill,
+    type: 'listening_choice',
+    promptEs,
+    audioText,
+    options,
+    acceptedAnswers: [correct],
+    explanationEs,
+    allowAudioInExam: true,
+  };
+}
+
+export function dictate(
+  id: string,
+  courseId: CourseId,
+  unitId: string,
+  skill: SkillArea,
+  promptEs: string,
+  audioText: string,
+  acceptedAnswers: string[],
+  explanationEs: string,
+): ExerciseItem {
+  return {
+    id,
+    courseId,
+    unitId,
+    skill,
+    type: 'listening_dictation',
+    promptEs,
+    audioText,
+    acceptedAnswers,
+    explanationEs,
+    allowAudioInExam: true,
+  };
+}

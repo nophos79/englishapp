@@ -91,5 +91,21 @@ describe('AnswerEvaluator', () => {
     };
     expect(evaluateAnswer(builderItem, { bed: 'room', book: 'case', arm: 'chair' }).isCorrect).toBe(true);
     expect(evaluateAnswer(builderItem, { bed: 'case', book: 'room', arm: 'chair' }).isCorrect).toBe(false);
+
+    const dictationItem: ExerciseItem = {
+      id: 'ex-dict',
+      courseId: '4p',
+      unitId: '4p-sa3-cooking',
+      skill: 'grammar',
+      type: 'listening_dictation',
+      promptEs: 'Dictado:',
+      audioText: 'Are there any eggs?',
+      acceptedAnswers: ['Are there any eggs?'],
+      explanationEs: 'Pregunta en plural.',
+      allowAudioInExam: true,
+    };
+    expect(evaluateAnswer(dictationItem, 'are there any eggs').isCorrect).toBe(true);
+    expect(evaluateAnswer(dictationItem, 'Are there any eggs?').isCorrect).toBe(true);
+    expect(evaluateAnswer(dictationItem, 'Is there any eggs').isCorrect).toBe(false);
   });
 });

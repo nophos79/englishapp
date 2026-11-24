@@ -5,7 +5,10 @@ import { course3p } from './course-3p';
 import { course4p } from './course-4p';
 import { course5p } from './course-5p';
 import { course6p } from './course-6p';
+import { LISTENING_EXERCISES } from './listeningExercises';
 import { VARIED_EXERCISES } from './variedExercises';
+
+const EXTRA_EXERCISES = [...VARIED_EXERCISES, ...LISTENING_EXERCISES];
 
 function withVariedExercises(course: Course): Course {
   return {
@@ -13,7 +16,7 @@ function withVariedExercises(course: Course): Course {
     terms: course.terms.map((term) => ({
       ...term,
       units: term.units.map((unit) => {
-        const extras = VARIED_EXERCISES.filter((e) => e.unitId === unit.id);
+        const extras = EXTRA_EXERCISES.filter((e) => e.unitId === unit.id);
         return extras.length > 0 ? { ...unit, exercises: [...unit.exercises, ...extras] } : unit;
       }),
     })),
