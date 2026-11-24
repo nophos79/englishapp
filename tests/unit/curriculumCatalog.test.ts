@@ -27,7 +27,7 @@ describe('Curriculum Catalog & Reference Banks (Zod Validation)', () => {
     }
   });
 
-  it('has globally unique exercise IDs and includes all 9 interactive exercise types', () => {
+  it('has globally unique exercise IDs and includes all 10 interactive exercise types', () => {
     const all = COURSES.flatMap((c) =>
       c.terms.flatMap((t) => t.units.flatMap((u) => u.exercises)),
     );
@@ -44,6 +44,30 @@ describe('Curriculum Catalog & Reference Banks (Zod Validation)', () => {
     expect(typesPresent).toContain('true_false');
     expect(typesPresent).toContain('listening_choice');
     expect(typesPresent).toContain('listening_dictation');
+    expect(typesPresent).toContain('reading_comprehension');
+  });
+
+  it('provides at least 2 Listening and 2 Reading exercises in every unit across 3p-6p', () => {
+    for (const course of COURSES) {
+      const units = getOrderedUnitsForCourse(course.id);
+      for (const unit of units) {
+        const listeningCount = unit.exercises.filter(
+          (e) => e.type === 'listening_choice' || e.type === 'listening_dictation',
+        ).length;
+        const readingCount = unit.exercises.filter(
+          (e) => e.type === 'reading_comprehension',
+        ).length;
+
+        expect(
+          listeningCount,
+          `Unit ${unit.id} has ${listeningCount} listening exercises (expected >= 2)`,
+        ).toBeGreaterThanOrEqual(2);
+        expect(
+          readingCount,
+          `Unit ${unit.id} has ${readingCount} reading exercises (expected >= 2)`,
+        ).toBeGreaterThanOrEqual(2);
+      }
+    }
   });
 
   it('validates irregular verbs, expressions, and wordlist banks', () => {

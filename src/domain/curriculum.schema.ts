@@ -14,6 +14,7 @@ export const exerciseTypeSchema = z.enum([
   'true_false',
   'listening_choice',
   'listening_dictation',
+  'reading_comprehension',
 ]);
 
 export const matchingPairSchema = z.object({
@@ -30,6 +31,8 @@ export const exerciseItemSchema = z
     type: exerciseTypeSchema,
     promptEs: z.string().min(3),
     promptEn: z.string().min(1).optional(),
+    readingTitle: z.string().min(1).optional(),
+    readingPassage: z.string().min(20).optional(),
     audioText: z.string().min(1).optional(),
     options: z.array(z.string().min(1)).min(2).optional(),
     pairs: z.array(matchingPairSchema).min(3).max(5).optional(),
@@ -42,7 +45,8 @@ export const exerciseItemSchema = z
     if (
       item.type === 'multiple_choice' ||
       item.type === 'odd_one_out' ||
-      item.type === 'listening_choice'
+      item.type === 'listening_choice' ||
+      item.type === 'reading_comprehension'
     ) {
       if (!item.options || item.options.length < 3) {
         ctx.addIssue({
@@ -57,6 +61,16 @@ export const exerciseItemSchema = z
           path: ['acceptedAnswers'],
         });
       }
+    }
+    if (
+      item.type === 'reading_comprehension' &&
+      (!item.readingPassage || item.readingPassage.trim().length < 20)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'reading_comprehension requires a readingPassage of at least 20 characters',
+        path: ['readingPassage'],
+      });
     }
     if (
       (item.type === 'listening_choice' || item.type === 'listening_dictation') &&

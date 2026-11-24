@@ -13,7 +13,7 @@ import {
 import { getAvatar } from '../../components/ui/Avatars';
 import { useApp } from '../../context/AppContext';
 import { COURSES, getCourse, getOrderedUnitsForCourse } from '../../data/curriculum';
-import type { AttemptRecord, CourseId, CustomExam } from '../../domain/types';
+import type { AttemptRecord, CourseId, CustomExam, ExerciseItem } from '../../domain/types';
 import { familyRepository } from '../../services/familyRepository';
 
 const VALID_COURSE_IDS: readonly CourseId[] = ['3p', '4p', '5p', '6p'];
@@ -367,12 +367,24 @@ export function StudentRoadmapPage() {
                         </div>
 
                         {enabled && (() => {
+                          const isListeningEx = (e: ExerciseItem) =>
+                            e.type === 'listening_choice' || e.type === 'listening_dictation';
+                          const isReadingEx = (e: ExerciseItem) => e.type === 'reading_comprehension';
+
                           const vocabCount = unit.exercises.filter(
-                            (e) => e.skill === 'vocabulary' || e.skill === 'expressions',
+                            (e) =>
+                              !isListeningEx(e) &&
+                              !isReadingEx(e) &&
+                              (e.skill === 'vocabulary' || e.skill === 'expressions'),
                           ).length;
                           const grammarCount = unit.exercises.filter(
-                            (e) => e.skill === 'grammar' || e.skill === 'irregular_verbs',
+                            (e) =>
+                              !isListeningEx(e) &&
+                              !isReadingEx(e) &&
+                              (e.skill === 'grammar' || e.skill === 'irregular_verbs'),
                           ).length;
+                          const listeningCount = unit.exercises.filter(isListeningEx).length;
+                          const readingCount = unit.exercises.filter(isReadingEx).length;
 
                           return (
                             <div className="mt-4 space-y-2">
@@ -392,6 +404,22 @@ export function StudentRoadmapPage() {
                                   className="btn-duo btn-duo-white px-2.5 py-2 text-xs font-black text-sky-800 hover:border-sky-400 disabled:opacity-40"
                                 >
                                   🧩 Gramática ({grammarCount})
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={listeningCount === 0}
+                                  onClick={() => navigate(`/practice/${unit.id}?focus=listening`)}
+                                  className="btn-duo btn-duo-white px-2.5 py-2 text-xs font-black text-indigo-800 hover:border-indigo-400 disabled:opacity-40"
+                                >
+                                  🎧 Listening ({listeningCount})
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={readingCount === 0}
+                                  onClick={() => navigate(`/practice/${unit.id}?focus=reading`)}
+                                  className="btn-duo btn-duo-white px-2.5 py-2 text-xs font-black text-amber-800 hover:border-amber-400 disabled:opacity-40"
+                                >
+                                  📖 Reading ({readingCount})
                                 </button>
                               </div>
                               <button

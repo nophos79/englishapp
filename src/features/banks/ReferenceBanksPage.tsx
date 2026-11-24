@@ -1,11 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Play, Search, ShieldAlert } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Play, Search, ShieldAlert } from 'lucide-react';
 import { SpeakButton } from '../../components/ui/SpeakButton';
 import { useApp } from '../../context/AppContext';
 import { expressionsBank } from '../../data/banks/expressions';
 import { irregularVerbsBank } from '../../data/banks/irregularVerbs';
 import { wordlistBank } from '../../data/banks/wordlist';
+import { speechService } from '../../services/speechService';
 
 type BankTab = 'verbs' | 'expressions' | 'wordlist';
 
@@ -20,6 +21,14 @@ export function ReferenceBanksPage() {
   const paramTab = searchParams.get('tab');
   const [tab, setTab] = useState<BankTab>(() => (isBankTab(paramTab) ? paramTab : 'verbs'));
   const [query, setQuery] = useState('');
+  const [voiceInfo, setVoiceInfo] = useState(() => speechService.getEnglishVoiceInfo());
+
+  useEffect(() => {
+    setVoiceInfo(speechService.getEnglishVoiceInfo());
+    return speechService.subscribeVoices(() => {
+      setVoiceInfo(speechService.getEnglishVoiceInfo());
+    });
+  }, []);
 
   const handleSelectTab = (next: BankTab) => {
     setTab(next);
@@ -119,6 +128,20 @@ export function ReferenceBanksPage() {
       </header>
 
       <main className="mx-auto max-w-4xl px-4 pt-6">
+        {voiceInfo.supported && voiceInfo.voicesLoaded && !voiceInfo.available && (
+          <div
+            role="status"
+            className="mb-4 flex items-start gap-2.5 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs font-bold text-amber-900"
+          >
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
+            <span>
+              Tu navegador no detecta ninguna voz en inglés instalada (puede pronunciar las palabras con acento español).
+              Prueba en Chrome o Edge, o instala la voz &ldquo;Inglés (Reino Unido)&rdquo; en los ajustes de idioma de tu
+              dispositivo.
+            </span>
+          </div>
+        )}
+
         <div className="mb-4 grid grid-cols-3 gap-2">
           {[
             { id: 'verbs', label: 'Verbos Irregulares' },

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Check, Puzzle, RotateCcw, Search, Snail, Volume2, X } from 'lucide-react';
+import { AlertCircle, BookOpen, Check, Puzzle, RotateCcw, Search, Snail, Volume2, X } from 'lucide-react';
 import { SpeakButton } from '../../components/ui/SpeakButton';
 import type { ExerciseItem } from '../../domain/types';
 import { speechService } from '../../services/speechService';
@@ -25,6 +25,7 @@ const TYPE_BADGES: Record<ExerciseItem['type'], string> = {
   true_false: '¿Correcta o con fallo?',
   listening_choice: 'Listening · Escucha y elige',
   listening_dictation: 'Listening · Dictado',
+  reading_comprehension: 'Reading · Comprensión lectora',
 };
 
 export function ExerciseRenderer({
@@ -42,6 +43,14 @@ export function ExerciseRenderer({
   // Track chosen chip indices for sentence_order so duplicate words work cleanly
   const tokens = shuffledTokens ?? exercise.tokens ?? [];
   const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
+  const [voiceInfo, setVoiceInfo] = useState(() => speechService.getEnglishVoiceInfo());
+
+  useEffect(() => {
+    setVoiceInfo(speechService.getEnglishVoiceInfo());
+    return speechService.subscribeVoices(() => {
+      setVoiceInfo(speechService.getEnglishVoiceInfo());
+    });
+  }, []);
 
   useEffect(() => {
     setSelectedIndices([]);
@@ -100,6 +109,23 @@ export function ExerciseRenderer({
           </span>
         </div>
 
+        {exercise.type === 'reading_comprehension' && exercise.readingPassage && (
+          <div className="mt-2 rounded-2xl border-2 border-amber-200 bg-amber-50/70 px-4 py-3">
+            <div className="mb-1.5 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-amber-900">
+                <BookOpen className="h-4 w-4 text-amber-700" />
+                <span>{exercise.readingTitle ?? 'Reading'}</span>
+              </div>
+              {!isExamMode && (
+                <SpeakButton text={exercise.readingPassage} label="Escuchar lectura" compact />
+              )}
+            </div>
+            <p className="text-sm font-semibold leading-relaxed text-slate-800 sm:text-[15px]">
+              {exercise.readingPassage}
+            </p>
+          </div>
+        )}
+
         <h2 className="mt-1.5 text-base font-black text-slate-900 sm:text-lg">{exercise.promptEs}</h2>
 
         {exercise.promptEn && (
@@ -114,9 +140,25 @@ export function ExerciseRenderer({
           <div className="mt-2.5 rounded-2xl border-2 border-sky-200 bg-gradient-to-r from-sky-50 to-indigo-50 px-4 py-3 text-center sm:flex sm:items-center sm:justify-between sm:gap-3 sm:text-left">
             {speechService.isSupported() ? (
               <>
-                <p className="mb-2 text-xs font-extrabold uppercase tracking-wide text-sky-800 sm:mb-0">
-                  Pulsa para escuchar tantas veces como necesites
-                </p>
+                <div className="mb-2 sm:mb-0">
+                  <p className="text-xs font-extrabold uppercase tracking-wide text-sky-800">
+                    Pulsa para escuchar tantas veces como necesites
+                  </p>
+                  {voiceInfo.available && (
+                    <p className="mt-0.5 text-[11px] font-bold text-sky-700">
+                      Voz inglesa activa ({voiceInfo.lang})
+                    </p>
+                  )}
+                  {voiceInfo.voicesLoaded && !voiceInfo.available && (
+                    <p className="mt-1 flex items-center justify-center gap-1.5 text-xs font-bold text-amber-800 sm:justify-start">
+                      <AlertCircle className="h-4 w-4 shrink-0" />
+                      <span>
+                        Aviso: tu navegador no tiene instalada una voz en inglés y puede leer con acento español. Usa
+                        Chrome/Edge o instala la voz &ldquo;Inglés (Reino Unido)&rdquo; en tu equipo.
+                      </span>
+                    </p>
+                  )}
+                </div>
                 <div className="flex flex-wrap items-center justify-center gap-2.5 sm:shrink-0">
                   <button
                     type="button"
@@ -149,8 +191,10 @@ export function ExerciseRenderer({
         )}
       </div>
 
-      {/* 1. MULTIPLE CHOICE & LISTENING CHOICE */}
-      {(exercise.type === 'multiple_choice' || exercise.type === 'listening_choice') && (
+      {/* 1. MULTIPLE CHOICE, LISTENING CHOICE & READING COMPREHENSION */}
+      {(exercise.type === 'multiple_choice' ||
+        exercise.type === 'listening_choice' ||
+        exercise.type === 'reading_comprehension') && (
         <div className="grid gap-2.5 sm:grid-cols-2">
           {(shuffledOptions ?? exercise.options ?? []).map((option, idx) => {
             const selected = value === option;

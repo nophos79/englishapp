@@ -218,3 +218,31 @@ export function dictate(
     allowAudioInExam: true,
   };
 }
+
+export function reading(
+  id: string,
+  courseId: CourseId,
+  unitId: string,
+  skill: SkillArea,
+  readingTitle: string,
+  readingPassage: string,
+  promptEs: string,
+  options: string[],
+  correct: string,
+  explanationEs: string,
+): ExerciseItem {
+  return {
+    id,
+    courseId,
+    unitId,
+    skill,
+    type: 'reading_comprehension',
+    readingTitle,
+    readingPassage,
+    promptEs,
+    options,
+    acceptedAnswers: [correct],
+    explanationEs,
+    allowAudioInExam: false,
+  };
+}

@@ -6,9 +6,10 @@ import { course4p } from './course-4p';
 import { course5p } from './course-5p';
 import { course6p } from './course-6p';
 import { LISTENING_EXERCISES } from './listeningExercises';
+import { READING_EXERCISES } from './readingExercises';
 import { VARIED_EXERCISES } from './variedExercises';
 
-const EXTRA_EXERCISES = [...VARIED_EXERCISES, ...LISTENING_EXERCISES];
+const EXTRA_EXERCISES = [...VARIED_EXERCISES, ...LISTENING_EXERCISES, ...READING_EXERCISES];
 
 function withVariedExercises(course: Course): Course {
   return {

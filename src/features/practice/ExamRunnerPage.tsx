@@ -350,7 +350,8 @@ export function ExamRunnerPage() {
             shuffledOptions={
               currentExercise.type === 'multiple_choice' ||
               currentExercise.type === 'odd_one_out' ||
-              currentExercise.type === 'listening_choice'
+              currentExercise.type === 'listening_choice' ||
+              currentExercise.type === 'reading_comprehension'
                 ? session.optionOrderByExercise[currentExercise.id]
                 : undefined
             }

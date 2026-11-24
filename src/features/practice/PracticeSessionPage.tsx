@@ -26,7 +26,12 @@ export function PracticeSessionPage() {
   const navigate = useNavigate();
 
   const mode = (searchParams.get('mode') as AttemptMode) || 'practice';
-  const focus = searchParams.get('focus') as 'vocabulary' | 'grammar' | null;
+  const focus = searchParams.get('focus') as
+    | 'vocabulary'
+    | 'grammar'
+    | 'listening'
+    | 'reading'
+    | null;
 
   const [session, setSession] = useState<PracticeSessionState | null>(null);
   const [currentInput, setCurrentInput] = useState<string | Record<string, string>>('');
@@ -81,16 +86,32 @@ export function PracticeSessionPage() {
         }
         const unit = getUnitById(unitId);
         if (unit) {
+          const isListeningEx = (e: ExerciseItem) =>
+            e.type === 'listening_choice' || e.type === 'listening_dictation';
+          const isReadingEx = (e: ExerciseItem) => e.type === 'reading_comprehension';
+
           if (focus === 'vocabulary') {
             exercises = unit.exercises.filter(
-              (e) => e.skill === 'vocabulary' || e.skill === 'expressions',
+              (e) =>
+                !isListeningEx(e) &&
+                !isReadingEx(e) &&
+                (e.skill === 'vocabulary' || e.skill === 'expressions'),
             );
             sessionTitle = `${unit.code}: ${unit.title} · Vocabulario`;
           } else if (focus === 'grammar') {
             exercises = unit.exercises.filter(
-              (e) => e.skill === 'grammar' || e.skill === 'irregular_verbs',
+              (e) =>
+                !isListeningEx(e) &&
+                !isReadingEx(e) &&
+                (e.skill === 'grammar' || e.skill === 'irregular_verbs'),
             );
             sessionTitle = `${unit.code}: ${unit.title} · Gramática`;
+          } else if (focus === 'listening') {
+            exercises = unit.exercises.filter(isListeningEx);
+            sessionTitle = `${unit.code}: ${unit.title} · Listening`;
+          } else if (focus === 'reading') {
+            exercises = unit.exercises.filter(isReadingEx);
+            sessionTitle = `${unit.code}: ${unit.title} · Reading`;
           } else {
             exercises = unit.exercises;
             sessionTitle = `${unit.code}: ${unit.title} · Completo`;

@@ -12,7 +12,8 @@ export type ExerciseType =
   | 'odd_one_out'
   | 'true_false'
   | 'listening_choice'
-  | 'listening_dictation';
+  | 'listening_dictation'
+  | 'reading_comprehension';
 export type SkillFocus = 'vocabulary' | 'grammar' | 'mixed';
 
 export type ExamStatus = 'pending' | 'in_progress' | 'completed' | 'abandoned';
@@ -32,6 +33,8 @@ export interface ExerciseItem {
   type: ExerciseType;
   promptEs: string;
   promptEn?: string;
+  readingTitle?: string;
+  readingPassage?: string;
   audioText?: string;
   options?: string[];
   pairs?: MatchingPair[];
