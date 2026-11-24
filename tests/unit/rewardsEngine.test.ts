@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { getExerciseById } from '../../src/data/curriculum';
 import {
   calculateAttemptXp,
+  classifyAttemptActivity,
   computeFamilyGoalProgress,
   computeStudentRewards,
+  getMetricCurrentValue,
 } from '../../src/domain/rewardsEngine';
 import type { AnswerDetail, AttemptRecord, FamilyRewardGoal } from '../../src/domain/types';
 
@@ -184,5 +186,112 @@ describe('RewardsEngine', () => {
     expect(progress.current).toBe(10);
     expect(progress.percent).toBe(100);
     expect(progress.reached).toBe(true);
+  });
+
+  it('classifies distinct activity modes, ignores repeats, unlocks Todo Terreno, and evaluates all 6 metrics', () => {
+    const detail = (exerciseId: string): AnswerDetail => ({
+      exerciseId,
+      unitId: '3p-sa1-animals',
+      submittedAnswer: 'x',
+      expectedAnswers: ['x'],
+      isCorrect: true,
+    });
+
+    const vocabAttempt = makeAttempt({
+      id: 'd-vocab',
+      unitId: '3p-sa1-animals',
+      totalQuestions: 2,
+      correctCount: 2,
+      scorePercent: 100,
+      finishedAt: '2026-11-23T10:00:00',
+      answersDetail: [detail('3p-sa1-v1'), detail('3p-sa1-v2')],
+    });
+    const grammarAttempt = makeAttempt({
+      id: 'd-grammar',
+      unitId: '3p-sa1-animals',
+      totalQuestions: 2,
+      correctCount: 2,
+      scorePercent: 100,
+      finishedAt: '2026-11-23T11:00:00',
+      answersDetail: [detail('3p-sa1-g1'), detail('3p-sa1-g2')],
+    });
+    const listeningAttempt1 = makeAttempt({
+      id: 'd-listen-1',
+      unitId: '3p-sa1-animals',
+      totalQuestions: 2,
+      correctCount: 2,
+      scorePercent: 100,
+      finishedAt: '2026-11-24T10:00:00',
+      answersDetail: [detail('3p-sa1-lc1'), detail('3p-sa1-ld1')],
+    });
+    const listeningRepeatSameUnit = makeAttempt({
+      id: 'd-listen-2',
+      unitId: '3p-sa1-animals',
+      totalQuestions: 2,
+      correctCount: 2,
+      scorePercent: 100,
+      finishedAt: '2026-11-24T12:00:00',
+      answersDetail: [detail('3p-sa1-lc1'), detail('3p-sa1-ld1')],
+    });
+    const readingAttempt = makeAttempt({
+      id: 'd-read',
+      unitId: '3p-sa1-animals',
+      totalQuestions: 2,
+      correctCount: 1,
+      scorePercent: 50,
+      stars: 1,
+      finishedAt: '2026-11-25T10:00:00',
+      answersDetail: [detail('3p-sa1-rd1'), { ...detail('3p-sa1-rd2'), isCorrect: false }],
+    });
+
+    expect(classifyAttemptActivity(vocabAttempt, getExerciseById)).toEqual({
+      key: '3p-sa1-animals:vocabulary',
+      category: 'vocabulary',
+    });
+    expect(classifyAttemptActivity(grammarAttempt, getExerciseById)).toEqual({
+      key: '3p-sa1-animals:grammar',
+      category: 'grammar',
+    });
+    expect(classifyAttemptActivity(listeningAttempt1, getExerciseById)).toEqual({
+      key: '3p-sa1-animals:listening',
+      category: 'listening',
+    });
+    expect(classifyAttemptActivity(readingAttempt, getExerciseById)).toEqual({
+      key: '3p-sa1-animals:reading',
+      category: 'reading',
+    });
+
+    const summary = computeStudentRewards(
+      [vocabAttempt, grammarAttempt, listeningAttempt1, listeningRepeatSameUnit, readingAttempt],
+      { now: new Date(2026, 10, 25, 12, 0, 0), lookupExercise: getExerciseById },
+    );
+
+    // 5 sessions total, but listening repeat does NOT inflate distinctActivitiesCount (remains 4)
+    expect(summary.completedSessionsCount).toBe(5);
+    expect(summary.distinctActivitiesCount).toBe(4);
+    expect(summary.totalPracticeDaysCount).toBe(3);
+    expect(summary.totalCorrectAnswersCount).toBe(9);
+    expect(summary.completedSkillModesCount).toBe(4);
+    expect(summary.badges.find((b) => b.id === 'all_rounder')?.earned).toBe(true);
+
+    expect(getMetricCurrentValue('distinct_activities', summary)).toBe(4);
+    expect(getMetricCurrentValue('days', summary)).toBe(3);
+    expect(getMetricCurrentValue('correct_answers', summary)).toBe(9);
+    expect(getMetricCurrentValue('xp', summary)).toBe(summary.totalXp);
+
+    const distinctGoal: FamilyRewardGoal = {
+      id: 'g2',
+      familyId: 'fam-1',
+      studentId: 'stu-1',
+      title: 'Hacer un postre juntos',
+      metric: 'distinct_activities',
+      targetValue: 4,
+      baselineValue: 0,
+      status: 'active',
+      createdAt: '2026-11-23T09:00:00',
+    };
+    const distinctProgress = computeFamilyGoalProgress(distinctGoal, summary);
+    expect(distinctProgress.reached).toBe(true);
+    expect(distinctProgress.percent).toBe(100);
   });
 });

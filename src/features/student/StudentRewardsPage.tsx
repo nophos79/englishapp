@@ -23,7 +23,11 @@ import {
 import { ThemeBackdrop, ThemeSceneBanner } from '../../components/ui/ThemeDecor';
 import { useApp } from '../../context/AppContext';
 import { getExerciseById } from '../../data/curriculum';
-import { computeFamilyGoalProgress, computeStudentRewards } from '../../domain/rewardsEngine';
+import {
+  computeFamilyGoalProgress,
+  computeStudentRewards,
+  FAMILY_REWARD_METRICS,
+} from '../../domain/rewardsEngine';
 import type { AttemptRecord, FamilyRewardGoal } from '../../domain/types';
 import { familyRepository } from '../../services/familyRepository';
 
@@ -458,9 +462,9 @@ export function StudentRewardsPage() {
                 </h2>
                 <p className="mt-1 text-sm font-semibold text-slate-600">
                   Objetivo:{' '}
-                  {activeOrClaimedGoal.metric === 'stars'
-                    ? `conseguir ${activeOrClaimedGoal.targetValue} ★ nuevas`
-                    : `completar ${activeOrClaimedGoal.targetValue} sesiones de práctica`}
+                  {FAMILY_REWARD_METRICS[activeOrClaimedGoal.metric].formatGoalText(
+                    activeOrClaimedGoal.targetValue,
+                  )}
                 </p>
 
                 <div className="mt-4">
@@ -468,7 +472,8 @@ export function StudentRewardsPage() {
                     <span>Progreso</span>
                     <span>
                       {activeGoalProgress.current} / {activeGoalProgress.target}{' '}
-                      {activeOrClaimedGoal.metric === 'stars' ? '★' : 'sesiones'} ({activeGoalProgress.percent} %)
+                      {FAMILY_REWARD_METRICS[activeOrClaimedGoal.metric].shortUnit} (
+                      {activeGoalProgress.percent} %)
                     </span>
                   </div>
                   <div className="h-4 w-full overflow-hidden rounded-full bg-amber-100 p-0.5">

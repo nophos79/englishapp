@@ -21,6 +21,13 @@ function isMissingTableError(error: { code?: string; message?: string } | null |
     msg.includes('could not find the table')
   );
 }
+
+function isRewardsFallbackError(error: { code?: string; message?: string } | null | undefined): boolean {
+  if (isMissingTableError(error)) return true;
+  if (!error) return false;
+  const msg = (error.message ?? '').toLowerCase();
+  return error.code === '23514' || msg.includes('family_rewards_');
+}
 import {
   enqueueSyncItem,
   listSyncOutbox,
@@ -397,7 +404,7 @@ export const familyRepository = {
       studentId: input.studentId,
       title: input.title.trim(),
       metric: input.metric,
-      targetValue: Math.max(1, Math.min(200, Math.round(input.targetValue))),
+      targetValue: Math.max(1, Math.min(5000, Math.round(input.targetValue))),
       baselineValue: Math.max(0, Math.round(input.baselineValue)),
       status: 'active',
       createdAt: new Date().toISOString(),
@@ -411,7 +418,7 @@ export const familyRepository = {
         .delete()
         .eq('student_id', input.studentId)
         .neq('status', 'redeemed');
-      if (delErr && !isMissingTableError(delErr)) {
+      if (delErr && !isRewardsFallbackError(delErr)) {
         throw new Error(delErr.message);
       }
 
@@ -430,7 +437,7 @@ export const familyRepository = {
         .select('*')
         .single();
       if (error) {
-        if (!isMissingTableError(error)) {
+        if (!isRewardsFallbackError(error)) {
           throw new Error(error.message);
         }
       } else if (data) {

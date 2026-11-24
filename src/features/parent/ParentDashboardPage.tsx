@@ -25,7 +25,13 @@ import {
   getOrderedUnitsForCourse,
 } from '../../data/curriculum';
 import { generateExamExercises } from '../../domain/examGenerator';
-import { computeFamilyGoalProgress, computeStudentRewards } from '../../domain/rewardsEngine';
+import {
+  computeFamilyGoalProgress,
+  computeStudentRewards,
+  FAMILY_REWARD_METRIC_OPTIONS,
+  FAMILY_REWARD_METRICS,
+  getMetricCurrentValue,
+} from '../../domain/rewardsEngine';
 import type {
   AttemptRecord,
   CourseId,
@@ -72,8 +78,10 @@ export function ParentDashboardPage() {
 
   // Family reward goal form
   const [rewardTitle, setRewardTitle] = useState('');
-  const [rewardMetric, setRewardMetric] = useState<FamilyRewardMetric>('stars');
-  const [rewardTarget, setRewardTarget] = useState(10);
+  const [rewardMetric, setRewardMetric] = useState<FamilyRewardMetric>('distinct_activities');
+  const [rewardTarget, setRewardTarget] = useState(
+    FAMILY_REWARD_METRICS.distinct_activities.defaultTarget,
+  );
 
   const selectedStudent = useMemo(
     () => students.find((s) => s.id === selectedStudentId) ?? students[0] ?? null,
@@ -212,10 +220,7 @@ export function ParentDashboardPage() {
   const handleCreateRewardGoal = async (e: FormEvent) => {
     e.preventDefault();
     if (!selectedStudent || !rewardTitle.trim()) return;
-    const baselineValue =
-      rewardMetric === 'stars'
-        ? studentRewards.totalEarnedStars
-        : studentRewards.completedSessionsCount;
+    const baselineValue = getMetricCurrentValue(rewardMetric, studentRewards);
 
     await familyRepository.createFamilyReward({
       studentId: selectedStudent.id,
@@ -825,6 +830,11 @@ export function ParentDashboardPage() {
                     </p>
                   </div>
                 </div>
+                <p className="mt-3 text-center text-xs font-semibold text-slate-500">
+                  {studentRewards.distinctActivitiesCount} actividades distintas completadas ·{' '}
+                  {studentRewards.totalPracticeDaysCount} días totales ·{' '}
+                  {studentRewards.totalCorrectAnswersCount} aciertos
+                </p>
               </div>
 
               <div className="grid gap-6 lg:grid-cols-2">
@@ -856,10 +866,7 @@ export function ParentDashboardPage() {
                             🎁 {activeGoal.title}
                           </p>
                           <p className="text-xs font-semibold text-slate-600">
-                            Meta: {activeGoal.targetValue}{' '}
-                            {activeGoal.metric === 'stars'
-                              ? 'estrellas nuevas'
-                              : 'sesiones completadas'}
+                            Meta: {FAMILY_REWARD_METRICS[activeGoal.metric].formatGoalText(activeGoal.targetValue)}
                           </p>
                         </div>
                         <button
@@ -876,7 +883,8 @@ export function ParentDashboardPage() {
                         <div className="mb-1 flex justify-between text-xs font-bold text-slate-700">
                           <span>Avance</span>
                           <span>
-                            {activeGoalProgress.current} / {activeGoalProgress.target} (
+                            {activeGoalProgress.current} / {activeGoalProgress.target}{' '}
+                            {FAMILY_REWARD_METRICS[activeGoal.metric].shortUnit} (
                             {activeGoalProgress.percent}%)
                           </span>
                         </div>
@@ -974,7 +982,7 @@ export function ParentDashboardPage() {
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid gap-3 sm:grid-cols-2">
                       <div>
                         <label className="mb-1 block text-xs font-bold text-slate-700">
                           Objetivo medido en
@@ -984,22 +992,25 @@ export function ParentDashboardPage() {
                           onChange={(e) => {
                             const nextMetric = e.target.value as FamilyRewardMetric;
                             setRewardMetric(nextMetric);
-                            setRewardTarget(nextMetric === 'stars' ? 10 : 5);
+                            setRewardTarget(FAMILY_REWARD_METRICS[nextMetric].defaultTarget);
                           }}
                           className="touch-target w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm"
                         >
-                          <option value="stars">Estrellas nuevas (★)</option>
-                          <option value="sessions">Sesiones completadas</option>
+                          {FAMILY_REWARD_METRIC_OPTIONS.map((opt) => (
+                            <option key={opt.id} value={opt.id}>
+                              {opt.label}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       <div>
                         <label className="mb-1 block text-xs font-bold text-slate-700">
-                          Cantidad objetivo
+                          Cantidad objetivo ({FAMILY_REWARD_METRICS[rewardMetric].shortUnit})
                         </label>
                         <input
                           type="number"
                           min={1}
-                          max={50}
+                          max={FAMILY_REWARD_METRICS[rewardMetric].maxTarget}
                           value={rewardTarget}
                           onChange={(e) => setRewardTarget(Number(e.target.value))}
                           className="touch-target w-full rounded-xl border border-slate-300 px-3 py-2 text-sm"

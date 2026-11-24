@@ -169,7 +169,13 @@ export interface ActiveExamSession {
   focusLossSeconds?: number;
 }
 
-export type FamilyRewardMetric = 'stars' | 'sessions';
+export type FamilyRewardMetric =
+  | 'stars'
+  | 'sessions'
+  | 'xp'
+  | 'days'
+  | 'correct_answers'
+  | 'distinct_activities';
 export type FamilyRewardStatus = 'active' | 'claimed' | 'redeemed';
 
 export interface FamilyRewardGoal {

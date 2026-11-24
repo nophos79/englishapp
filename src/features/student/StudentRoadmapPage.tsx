@@ -25,7 +25,11 @@ import {
   getExerciseById,
   getOrderedUnitsForCourse,
 } from '../../data/curriculum';
-import { computeFamilyGoalProgress, computeStudentRewards } from '../../domain/rewardsEngine';
+import {
+  computeFamilyGoalProgress,
+  computeStudentRewards,
+  FAMILY_REWARD_METRICS,
+} from '../../domain/rewardsEngine';
 import type {
   AttemptRecord,
   CourseId,
@@ -367,7 +371,7 @@ export function StudentRoadmapPage() {
                   <span className="truncate">Premio Familiar: {activeFamilyGoal.title}</span>
                   <span className="ml-auto shrink-0 text-amber-800">
                     {activeGoalProgress.current}/{activeGoalProgress.target}{' '}
-                    {activeFamilyGoal.metric === 'stars' ? '★' : 'ses.'}
+                    {FAMILY_REWARD_METRICS[activeFamilyGoal.metric].shortUnit}
                   </span>
                 </p>
                 <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-amber-100">

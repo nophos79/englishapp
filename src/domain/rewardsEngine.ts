@@ -1,4 +1,9 @@
-import type { AttemptRecord, ExerciseItem, FamilyRewardGoal } from './types';
+import type {
+  AttemptRecord,
+  ExerciseItem,
+  FamilyRewardGoal,
+  FamilyRewardMetric,
+} from './types';
 
 export interface ExplorerRank {
   level: number;
@@ -24,6 +29,21 @@ export interface WeekDayStatus {
   isToday: boolean;
 }
 
+export type ActivityCategory =
+  | 'vocabulary'
+  | 'grammar'
+  | 'listening'
+  | 'reading'
+  | 'full'
+  | 'bank'
+  | 'exam'
+  | 'mistakes';
+
+export interface ClassifiedActivity {
+  key: string;
+  category: ActivityCategory;
+}
+
 export interface StudentRewardsSummary {
   totalXp: number;
   rank: ExplorerRank;
@@ -33,6 +53,10 @@ export interface StudentRewardsSummary {
   rankProgressPercent: number;
   totalEarnedStars: number;
   completedSessionsCount: number;
+  totalPracticeDaysCount: number;
+  totalCorrectAnswersCount: number;
+  distinctActivitiesCount: number;
+  completedSkillModesCount: number;
   weekDaysStatus: WeekDayStatus[];
   weeklyDaysPracticed: number;
   weeklyTargetDays: number;
@@ -48,6 +72,77 @@ export interface FamilyGoalProgress {
   percent: number;
   reached: boolean;
 }
+
+export interface FamilyRewardMetricMeta {
+  id: FamilyRewardMetric;
+  label: string;
+  shortUnit: string;
+  defaultTarget: number;
+  maxTarget: number;
+  formatGoalText: (target: number) => string;
+}
+
+export const FAMILY_REWARD_METRICS: Record<FamilyRewardMetric, FamilyRewardMetricMeta> = {
+  distinct_activities: {
+    id: 'distinct_activities',
+    label: 'Actividades distintas (Vocab, Gram, Listening, Reading...)',
+    shortUnit: 'act.',
+    defaultTarget: 6,
+    maxTarget: 60,
+    formatGoalText: (t) =>
+      `completar ${t} ${t === 1 ? 'actividad distinta' : 'actividades distintas'}`,
+  },
+  xp: {
+    id: 'xp',
+    label: 'Puntos XP nuevos',
+    shortUnit: 'XP',
+    defaultTarget: 200,
+    maxTarget: 2000,
+    formatGoalText: (t) => `conseguir ${t} XP nuevos`,
+  },
+  days: {
+    id: 'days',
+    label: 'Días distintos de práctica',
+    shortUnit: 'días',
+    defaultTarget: 4,
+    maxTarget: 30,
+    formatGoalText: (t) => `practicar ${t} ${t === 1 ? 'día distinto' : 'días distintos'}`,
+  },
+  correct_answers: {
+    id: 'correct_answers',
+    label: 'Preguntas acertadas',
+    shortUnit: 'aciertos',
+    defaultTarget: 40,
+    maxTarget: 500,
+    formatGoalText: (t) => `acertar ${t} ${t === 1 ? 'pregunta' : 'preguntas'}`,
+  },
+  stars: {
+    id: 'stars',
+    label: 'Estrellas nuevas (★)',
+    shortUnit: '★',
+    defaultTarget: 10,
+    maxTarget: 60,
+    formatGoalText: (t) => `conseguir ${t} ★ nuevas`,
+  },
+  sessions: {
+    id: 'sessions',
+    label: 'Rondas completadas (cualquier actividad)',
+    shortUnit: 'rondas',
+    defaultTarget: 5,
+    maxTarget: 50,
+    formatGoalText: (t) =>
+      `completar ${t} ${t === 1 ? 'ronda de práctica' : 'rondas de práctica'}`,
+  },
+};
+
+export const FAMILY_REWARD_METRIC_OPTIONS: readonly FamilyRewardMetricMeta[] = [
+  FAMILY_REWARD_METRICS.distinct_activities,
+  FAMILY_REWARD_METRICS.xp,
+  FAMILY_REWARD_METRICS.days,
+  FAMILY_REWARD_METRICS.correct_answers,
+  FAMILY_REWARD_METRICS.stars,
+  FAMILY_REWARD_METRICS.sessions,
+];
 
 export const EXPLORER_RANKS: readonly ExplorerRank[] = [
   { level: 1, title: 'Starter Explorer', emoji: '🌱', minXp: 0 },
@@ -72,6 +167,75 @@ export function getMondayStart(date: Date): Date {
   const offset = (copy.getDay() + 6) % 7;
   copy.setDate(copy.getDate() - offset);
   return copy;
+}
+
+export function classifyAttemptActivity(
+  attempt: AttemptRecord,
+  lookupExercise?: (id: string) => ExerciseItem | undefined,
+): ClassifiedActivity {
+  if (attempt.mode === 'exam') {
+    return { key: `exam:${attempt.examId ?? attempt.id}`, category: 'exam' };
+  }
+  if (attempt.mode === 'mistake_review') {
+    return {
+      key: `mistakes:${toLocalDateKey(new Date(attempt.finishedAt))}`,
+      category: 'mistakes',
+    };
+  }
+  if (attempt.mode === 'bank_practice') {
+    return { key: `bank:${attempt.unitId ?? 'bank'}`, category: 'bank' };
+  }
+
+  let category: ActivityCategory = 'full';
+  if (attempt.answersDetail.length > 0) {
+    const isListening = attempt.answersDetail.every((ans) => {
+      const ex = lookupExercise?.(ans.exerciseId);
+      return ex
+        ? ex.type === 'listening_choice' || ex.type === 'listening_dictation'
+        : ans.exerciseId.includes('-lc') || ans.exerciseId.includes('-ld');
+    });
+
+    const isReading = attempt.answersDetail.every((ans) => {
+      const ex = lookupExercise?.(ans.exerciseId);
+      return ex ? ex.type === 'reading_comprehension' : ans.exerciseId.includes('-rd');
+    });
+
+    const isVocabulary = attempt.answersDetail.every((ans) => {
+      const ex = lookupExercise?.(ans.exerciseId);
+      if (ex) {
+        return (
+          ex.type !== 'listening_choice' &&
+          ex.type !== 'listening_dictation' &&
+          ex.type !== 'reading_comprehension' &&
+          (ex.skill === 'vocabulary' || ex.skill === 'expressions')
+        );
+      }
+      return /-v\d|-m\d/.test(ans.exerciseId);
+    });
+
+    const isGrammar = attempt.answersDetail.every((ans) => {
+      const ex = lookupExercise?.(ans.exerciseId);
+      if (ex) {
+        return (
+          ex.type !== 'listening_choice' &&
+          ex.type !== 'listening_dictation' &&
+          ex.type !== 'reading_comprehension' &&
+          (ex.skill === 'grammar' || ex.skill === 'irregular_verbs')
+        );
+      }
+      return /-g\d/.test(ans.exerciseId);
+    });
+
+    if (isListening) category = 'listening';
+    else if (isReading) category = 'reading';
+    else if (isVocabulary) category = 'vocabulary';
+    else if (isGrammar) category = 'grammar';
+  }
+
+  return {
+    key: `${attempt.unitId ?? 'unit'}:${category}`,
+    category,
+  };
 }
 
 /**
@@ -117,12 +281,14 @@ export function computeStudentRewards(
   const bestStarsByUnit = new Map<string, number>();
   let examStarsSum = 0;
 
+  const allPracticeDays = new Set<string>();
   const daysByWeekStart = new Map<string, Set<string>>();
   const currentMonday = getMondayStart(now);
   const currentMondayKey = toLocalDateKey(currentMonday);
   const todayKey = toLocalDateKey(now);
 
   let weeklyQuestions = 0;
+  let totalCorrectAnswersCount = 0;
   let listeningCorrect = 0;
   let readingCorrect = 0;
   let irregularVerbCorrect = 0;
@@ -130,15 +296,31 @@ export function computeStudentRewards(
   let perfectSessions = 0;
   let passedExams = 0;
   const distinctUnits = new Set<string>();
+  const distinctActivityKeys = new Set<string>();
+  const distinctSkillCategories = new Set<'vocabulary' | 'grammar' | 'listening' | 'reading'>();
 
   for (const attempt of completed) {
     const finishDate = new Date(attempt.finishedAt);
     const dayKey = toLocalDateKey(finishDate);
+    allPracticeDays.add(dayKey);
+
     const repeatKey = `${dayKey}:${attempt.unitId ?? attempt.mode}`;
     const repeatIdx = repeatCounter.get(repeatKey) ?? 0;
     repeatCounter.set(repeatKey, repeatIdx + 1);
 
     totalXp += calculateAttemptXp(attempt, repeatIdx);
+    totalCorrectAnswersCount += attempt.correctCount;
+
+    const classified = classifyAttemptActivity(attempt, lookup);
+    distinctActivityKeys.add(classified.key);
+    if (
+      classified.category === 'vocabulary' ||
+      classified.category === 'grammar' ||
+      classified.category === 'listening' ||
+      classified.category === 'reading'
+    ) {
+      distinctSkillCategories.add(classified.category);
+    }
 
     if (attempt.mode === 'exam') {
       examStarsSum += attempt.stars;
@@ -334,6 +516,15 @@ export function computeStudentRewards(
       progressCurrent: Math.min(5, distinctUnits.size),
       progressTarget: 5,
     },
+    {
+      id: 'all_rounder',
+      title: 'Todo Terreno',
+      description: 'Completa al menos 1 actividad de Vocabulario, Gramática, Listening y Reading.',
+      emoji: '🌈',
+      earned: distinctSkillCategories.size >= 4,
+      progressCurrent: distinctSkillCategories.size,
+      progressTarget: 4,
+    },
   ];
 
   return {
@@ -345,6 +536,10 @@ export function computeStudentRewards(
     rankProgressPercent,
     totalEarnedStars,
     completedSessionsCount: completed.length,
+    totalPracticeDaysCount: allPracticeDays.size,
+    totalCorrectAnswersCount,
+    distinctActivitiesCount: distinctActivityKeys.size,
+    completedSkillModesCount: distinctSkillCategories.size,
     weekDaysStatus,
     weeklyDaysPracticed,
     weeklyTargetDays,
@@ -355,12 +550,31 @@ export function computeStudentRewards(
   };
 }
 
+export function getMetricCurrentValue(
+  metric: FamilyRewardMetric,
+  rewards: StudentRewardsSummary,
+): number {
+  switch (metric) {
+    case 'stars':
+      return rewards.totalEarnedStars;
+    case 'sessions':
+      return rewards.completedSessionsCount;
+    case 'xp':
+      return rewards.totalXp;
+    case 'days':
+      return rewards.totalPracticeDaysCount;
+    case 'correct_answers':
+      return rewards.totalCorrectAnswersCount;
+    case 'distinct_activities':
+      return rewards.distinctActivitiesCount;
+  }
+}
+
 export function computeFamilyGoalProgress(
   goal: FamilyRewardGoal,
   rewards: StudentRewardsSummary,
 ): FamilyGoalProgress {
-  const metricTotal =
-    goal.metric === 'stars' ? rewards.totalEarnedStars : rewards.completedSessionsCount;
+  const metricTotal = getMetricCurrentValue(goal.metric, rewards);
   const current = Math.max(0, metricTotal - goal.baselineValue);
   const target = Math.max(1, goal.targetValue);
   const percent = Math.min(100, Math.round((current / target) * 100));
