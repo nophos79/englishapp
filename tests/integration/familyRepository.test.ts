@@ -85,10 +85,15 @@ describe('FamilyRepository (PIN, Students, Unit Access, Exams, Attempts & Mistak
         },
       ],
       totalQuestions: 2,
+      focusLossCount: 2,
+      focusLossSeconds: 18,
     });
     await familyRepository.recordAttempt(attempt);
     await familyRepository.recordAttempt(attempt); // duplicate id ignored
-    expect((await familyRepository.listAttempts(s1.id)).length).toBe(1);
+    const savedAttempts = await familyRepository.listAttempts(s1.id);
+    expect(savedAttempts.length).toBe(1);
+    expect(savedAttempts[0].focusLossCount).toBe(2);
+    expect(savedAttempts[0].focusLossSeconds).toBe(18);
 
     // Mistake queue recording & resolution (without touching attempt history)
     await familyRepository.recordMistakes(s1.id, [

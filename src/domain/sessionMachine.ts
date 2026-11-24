@@ -101,6 +101,8 @@ export function buildAttemptRecord(params: {
   finishedAt?: string;
   answersDetail: AnswerDetail[];
   totalQuestions: number;
+  focusLossCount?: number;
+  focusLossSeconds?: number;
 }): AttemptRecord {
   const finishedAt = params.finishedAt ?? new Date().toISOString();
   const correctCount = params.answersDetail.filter((a) => a.isCorrect).length;
@@ -126,5 +128,7 @@ export function buildAttemptRecord(params: {
     finishedAt,
     durationSeconds,
     answersDetail: params.answersDetail,
+    focusLossCount: params.focusLossCount ?? 0,
+    focusLossSeconds: params.focusLossSeconds ?? 0,
   };
 }

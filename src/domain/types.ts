@@ -128,6 +128,8 @@ export interface AttemptRecord {
   finishedAt: string;
   durationSeconds: number;
   answersDetail: AnswerDetail[];
+  focusLossCount?: number;
+  focusLossSeconds?: number;
 }
 
 export interface StudentMistake {
@@ -149,4 +151,6 @@ export interface ActiveExamSession {
   exerciseIds: string[];
   optionOrderByExercise: Record<string, string[]>;
   answers: Record<string, string | Record<string, string>>;
+  focusLossCount?: number;
+  focusLossSeconds?: number;
 }

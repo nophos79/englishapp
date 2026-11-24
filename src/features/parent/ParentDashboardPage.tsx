@@ -648,6 +648,17 @@ export function ParentDashboardPage() {
                                 ABANDONADO
                               </span>
                             )}
+                            {att.mode === 'exam' && (att.focusLossCount ?? 0) > 0 && (
+                              <span className="rounded-lg bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-900">
+                                ⚠️ Salió de la app {att.focusLossCount}{' '}
+                                {att.focusLossCount === 1 ? 'vez' : 'veces'} ({att.focusLossSeconds ?? 0}s)
+                              </span>
+                            )}
+                            {att.mode === 'exam' && (att.focusLossCount ?? 0) === 0 && att.status === 'completed' && (
+                              <span className="rounded-lg bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">
+                                ✓ Sin salidas de la app
+                              </span>
+                            )}
                             <span className="text-sm font-bold text-slate-900">
                               {att.correctCount}/{att.totalQuestions} aciertos ({att.scorePercent}%)
                             </span>

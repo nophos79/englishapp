@@ -56,6 +56,41 @@ async function hashPinLocal(pin: string, salt: string): Promise<string> {
   return hash.toString(16);
 }
 
+function serializeAnswersDetail(record: AttemptRecord): unknown {
+  if ((record.focusLossCount ?? 0) > 0) {
+    return {
+      answers: record.answersDetail,
+      integrity: {
+        focusLossCount: record.focusLossCount ?? 0,
+        focusLossSeconds: record.focusLossSeconds ?? 0,
+      },
+    };
+  }
+  return record.answersDetail;
+}
+
+function deserializeAnswersDetail(raw: unknown): {
+  answersDetail: AttemptRecord['answersDetail'];
+  focusLossCount: number;
+  focusLossSeconds: number;
+} {
+  if (Array.isArray(raw)) {
+    return { answersDetail: raw, focusLossCount: 0, focusLossSeconds: 0 };
+  }
+  if (raw && typeof raw === 'object' && 'answers' in raw) {
+    const obj = raw as {
+      answers?: AttemptRecord['answersDetail'];
+      integrity?: { focusLossCount?: number; focusLossSeconds?: number };
+    };
+    return {
+      answersDetail: Array.isArray(obj.answers) ? obj.answers : [],
+      focusLossCount: obj.integrity?.focusLossCount ?? 0,
+      focusLossSeconds: obj.integrity?.focusLossSeconds ?? 0,
+    };
+  }
+  return { answersDetail: [], focusLossCount: 0, focusLossSeconds: 0 };
+}
+
 function isOnline(): boolean {
   return typeof navigator === 'undefined' ? true : navigator.onLine;
 }
@@ -139,23 +174,28 @@ export const familyRepository = {
       createdAt: row.created_at,
     }));
 
-    const attempts: AttemptRecord[] = (attemptsRes.data ?? []).map((row) => ({
-      id: row.id,
-      familyId: row.family_id,
-      studentId: row.student_id,
-      mode: row.mode,
-      unitId: row.unit_id,
-      examId: row.exam_id,
-      status: row.status,
-      totalQuestions: row.total_questions,
-      correctCount: row.correct_count,
-      scorePercent: row.score_percent,
-      stars: row.stars,
-      startedAt: row.started_at,
-      finishedAt: row.finished_at,
-      durationSeconds: row.duration_seconds,
-      answersDetail: row.answers_detail ?? [],
-    }));
+    const attempts: AttemptRecord[] = (attemptsRes.data ?? []).map((row) => {
+      const parsed = deserializeAnswersDetail(row.answers_detail);
+      return {
+        id: row.id,
+        familyId: row.family_id,
+        studentId: row.student_id,
+        mode: row.mode,
+        unitId: row.unit_id,
+        examId: row.exam_id,
+        status: row.status,
+        totalQuestions: row.total_questions,
+        correctCount: row.correct_count,
+        scorePercent: row.score_percent,
+        stars: row.stars,
+        startedAt: row.started_at,
+        finishedAt: row.finished_at,
+        durationSeconds: row.duration_seconds,
+        answersDetail: parsed.answersDetail,
+        focusLossCount: parsed.focusLossCount,
+        focusLossSeconds: parsed.focusLossSeconds,
+      };
+    });
 
     const mistakes: StudentMistake[] = (mistakesRes.data ?? []).map((row) => ({
       studentId: row.student_id,
@@ -423,7 +463,7 @@ export const familyRepository = {
             started_at: record.startedAt,
             finished_at: record.finishedAt,
             duration_seconds: record.durationSeconds,
-            answers_detail: record.answersDetail,
+            answers_detail: serializeAnswersDetail(record),
           },
           { onConflict: 'id', ignoreDuplicates: true },
         );
@@ -613,7 +653,7 @@ export const familyRepository = {
             started_at: record.startedAt,
             finished_at: record.finishedAt,
             duration_seconds: record.durationSeconds,
-            answers_detail: record.answersDetail,
+            answers_detail: serializeAnswersDetail(record),
           },
           { onConflict: 'id', ignoreDuplicates: true },
         );

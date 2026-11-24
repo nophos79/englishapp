@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { AlertTriangle, CheckCircle2, ShieldAlert, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, EyeOff, ShieldAlert, XCircle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { getExerciseById } from '../../data/curriculum';
 import { evaluateAnswer } from '../../domain/answerEvaluator';
@@ -23,6 +23,39 @@ export function ExamRunnerPage() {
   const [exam, setExam] = useState<CustomExam | null>(null);
   const [session, setSession] = useState<ActiveExamSession | null>(null);
   const [submittedAttempt, setSubmittedAttempt] = useState<AttemptRecord | null>(null);
+  const hiddenAtRef = useRef<number | null>(null);
+  const sessionRef = useRef<ActiveExamSession | null>(null);
+
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
+  // Detect tab/app switching during active exam (anti-cheat telemetry)
+  useEffect(() => {
+    if (submittedAttempt) return;
+
+    const handleVisibilityChange = () => {
+      const active = sessionRef.current;
+      if (!active) return;
+
+      if (document.hidden) {
+        hiddenAtRef.current = Date.now();
+      } else if (hiddenAtRef.current !== null) {
+        const awaySec = Math.max(1, Math.round((Date.now() - hiddenAtRef.current) / 1000));
+        hiddenAtRef.current = null;
+        const next: ActiveExamSession = {
+          ...active,
+          focusLossCount: (active.focusLossCount ?? 0) + 1,
+          focusLossSeconds: (active.focusLossSeconds ?? 0) + awaySec,
+        };
+        setSession(next);
+        void saveActiveExamSession(next);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [submittedAttempt]);
 
   useEffect(() => {
     if (!activeStudent || !examId) {
@@ -128,6 +161,8 @@ export function ExamRunnerPage() {
       startedAt: session.startedAt,
       answersDetail,
       totalQuestions: exercises.length,
+      focusLossCount: session.focusLossCount ?? 0,
+      focusLossSeconds: session.focusLossSeconds ?? 0,
     });
 
     await familyRepository.recordAttempt(attempt);
@@ -252,7 +287,7 @@ export function ExamRunnerPage() {
       <div className="mx-auto max-w-2xl">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs font-bold text-amber-900">
           <span className="inline-flex items-center gap-1.5">
-            <ShieldAlert className="h-4 w-4" /> Modo Examen: bancos de consulta bloqueados · Sin pistas ni soluciones
+            <ShieldAlert className="h-4 w-4" /> Modo Examen: bancos bloqueados · Sin pistas · Salidas de pantalla registradas
           </span>
           <button
             type="button"
@@ -262,6 +297,20 @@ export function ExamRunnerPage() {
             <AlertTriangle className="h-3.5 w-3.5" /> Abandonar
           </button>
         </div>
+
+        {(session.focusLossCount ?? 0) > 0 && (
+          <div
+            role="alert"
+            className="mb-4 flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-xs font-bold text-rose-800"
+          >
+            <EyeOff className="h-4 w-4 shrink-0" />
+            <span>
+              Aviso: has salido de la pantalla del examen {session.focusLossCount}{' '}
+              {session.focusLossCount === 1 ? 'vez' : 'veces'} ({session.focusLossSeconds ?? 0}s). Quedará registrado
+              en el historial de tus padres.
+            </span>
+          </div>
+        )}
 
         <header className="mb-4 flex items-center justify-between">
           <h1 className="text-lg font-extrabold text-slate-900">{exam.title}</h1>
